@@ -1,10 +1,10 @@
 #[cfg(target_os = "macos")]
 mod macos;
 
-#[cfg(any(target_os = "macos", test))]
+#[cfg(any(target_os = "macos", all(test, unix)))]
 use std::path::{Path, PathBuf};
 
-#[cfg(any(target_os = "macos", test))]
+#[cfg(any(target_os = "macos", all(test, unix)))]
 struct Mount {
     path: PathBuf,
     source: String,
@@ -13,7 +13,7 @@ struct Mount {
 }
 
 /// Resolve the containing volume, including nullfs mirrors used by App Translocation.
-#[cfg(any(target_os = "macos", test))]
+#[cfg(any(target_os = "macos", all(test, unix)))]
 fn classify(
     path: &Path,
     mounts: &[Mount],
@@ -55,7 +55,7 @@ pub fn installation_required() -> bool {
     false
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

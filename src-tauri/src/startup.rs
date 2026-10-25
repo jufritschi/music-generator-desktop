@@ -249,7 +249,7 @@ fn require_window<R: Runtime>(window: &WebviewWindow<R>, label: &str) -> Result<
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use tauri::{
