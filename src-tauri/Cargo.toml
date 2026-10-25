@@ -55,6 +55,7 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 base64 = "0.22"
 
 [dev-dependencies]
+tauri = { version = "2", features = ["test"] }
 tempfile = "3"
 axum = "0.8"
 
