@@ -13,6 +13,7 @@ pub struct AppState {
     pub resources: PathBuf,
     pub runtime: Arc<Runtime>,
     engine: EngineManager,
+    pub synthesis_probe: crate::synthesis_policy::Probe,
 }
 
 impl AppState {
@@ -22,6 +23,7 @@ impl AppState {
             resources,
             runtime: Arc::new(Runtime::default()),
             engine: EngineManager::default(),
+            synthesis_probe: Default::default(),
         }
     }
 

@@ -84,7 +84,7 @@ it("shows save failures and retries on the next change and on close", async () =
 it("falls back after read failure and retries reading on close without overwriting saved data", async () => {
   mocks.generationFormPreferences.mockRejectedValueOnce(new Error("Database busy"));
   const controller = createFormPreferences(form(), vi.fn()); await controller.ready;
-  expect(field("inference_steps").value).toBe("80"); expect(error().hidden).toBe(false);
+  expect(field("inference_steps").value).toBe("30"); expect(error().hidden).toBe(false);
   await controller.flush();
   expect(mocks.generationFormPreferences).toHaveBeenCalledTimes(2);
   expect(mocks.saveGenerationFormPreferences).not.toHaveBeenCalled(); expect(error().hidden).toBe(true);
@@ -96,4 +96,14 @@ it("provides the reset and error labels in all twelve languages", () => {
     const values = (I18N as Record<string, Record<string, unknown>>)[lang];
     expect(values.form_preferences_reset).toBeTruthy(); expect(values.form_preferences_error).toBeTruthy();
   }
+});
+
+it("uses current model and device defaults on explicit reset without replacing saved steps on load", async () => {
+  const defaults = vi.fn().mockResolvedValue({ ...DEFAULT_FORM_PREFERENCES, inference_steps: 8 });
+  mocks.generationFormPreferences.mockResolvedValue({ ...custom, inference_steps: 80 });
+  const controller = createFormPreferences(form(), vi.fn(), defaults); await controller.ready;
+  expect(field("inference_steps").value).toBe("80");
+  document.querySelector<HTMLButtonElement>("#resetGenPreferences")!.click(); await settle(); await controller.flush();
+  expect(field("inference_steps").value).toBe("8");
+  expect(mocks.saveGenerationFormPreferences).toHaveBeenLastCalledWith({ ...DEFAULT_FORM_PREFERENCES, inference_steps: 8 });
 });

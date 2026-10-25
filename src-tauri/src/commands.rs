@@ -12,10 +12,38 @@ use tauri::{AppHandle, Emitter, Manager, State};
 type Desktop<'a> = State<'a, Arc<AppState>>;
 
 #[tauri::command]
-pub fn get_generation_form_preferences(
+pub async fn get_generation_form_preferences(
     state: Desktop<'_>,
 ) -> Result<crate::form_preferences::GenerationFormPreferences> {
-    state.db.generation_form_preferences()
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let selection = crate::catalog::Selection::from_settings(&state.db.settings()?);
+        let backend = state.synthesis_probe.inspect(&state.resources, false);
+        let defaults = crate::synthesis_policy::policy(backend, &selection).defaults;
+        state
+            .db
+            .generation_form_preferences_with_defaults(&defaults)
+    })
+    .await
+    .map_err(|e| message(e.to_string()))?
+}
+
+#[tauri::command]
+pub async fn generation_policy(
+    state: Desktop<'_>,
+    selection: Option<crate::catalog::Selection>,
+    refresh: bool,
+) -> Result<crate::synthesis_policy::Policy> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let selection = selection.unwrap_or(crate::catalog::Selection::from_settings(
+            &state.db.settings()?,
+        ));
+        let backend = state.synthesis_probe.inspect(&state.resources, refresh);
+        Ok(crate::synthesis_policy::policy(backend, &selection))
+    })
+    .await
+    .map_err(|e| message(e.to_string()))?
 }
 
 #[tauri::command]

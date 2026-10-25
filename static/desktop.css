@@ -100,3 +100,18 @@ body { height: 100dvh; display: flex; flex-direction: column; padding: 0; }
   #studio .time { font-size: 10px; }
   .vol:hover #volRange, .vol:focus-within #volRange { width: 55px; }
 }
+
+.cpu-warning {
+  color: var(--ink, #f2e7cb);
+  background: rgba(227, 170, 63, .12);
+  border: 1px solid rgba(227, 170, 63, .55);
+  border-radius: 8px;
+  padding: 12px 14px;
+  line-height: 1.5;
+  font-size: 13px;
+}
+.cpu-dialog { max-width: min(560px, calc(100vw - 32px)); }
+.cpu-dialog p { line-height: 1.6; }
+.cpu-dialog .submit { flex-wrap: wrap; gap: 8px; }
+
+.genbar > .cpu-warning { margin: 0 0 12px; }

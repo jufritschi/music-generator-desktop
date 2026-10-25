@@ -47,3 +47,9 @@ describe("desktop contracts", () => {
     expect(invoke).toHaveBeenLastCalledWith("cancel_model_download", undefined);
   });
 });
+
+it("requests a fresh synthesis-device policy for the selected model without altering LM settings", async () => {
+  const selection = { provider: "ace-step", synthesis: "acestep-v15-sft-Q8_0.gguf", language: "acestep-5Hz-lm-0.6B-Q8_0.gguf" };
+  await backend.generationPolicy(selection, true);
+  expect(invoke).toHaveBeenLastCalledWith("generation_policy", { selection, refresh: true });
+});

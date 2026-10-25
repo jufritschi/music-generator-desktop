@@ -8,7 +8,7 @@ import type { ModelCatalog, ModelSelection, Settings } from "./types";
 const mocks = vi.hoisted(() => ({ settings: vi.fn(), modelCatalog: vi.fn(), selectModels: vi.fn(), listen: vi.fn() }));
 vi.mock("./backend", () => ({ backend: mocks }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: mocks.listen }));
-vi.mock("./i18n.js", () => ({ t: (key: string) => key, applyI18n: vi.fn() }));
+vi.mock("./i18n.js", async importOriginal => ({ ...(await importOriginal<typeof import("./i18n.js")>()), t: (key: string) => key, applyI18n: vi.fn() }));
 const standard: ModelSelection = { provider: "ace-step", synthesis: "acestep-v15-sft-Q8_0.gguf", language: "acestep-5Hz-lm-1.7B-Q8_0.gguf" };
 const xl = { ...standard, synthesis: "acestep-v15-xl-sft-Q8_0.gguf" };
 const turbo = { ...standard, synthesis: "acestep-v15-turbo-Q8_0.gguf" };

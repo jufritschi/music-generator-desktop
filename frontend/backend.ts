@@ -1,5 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import type { Bootstrap, Filter, Folder, Generation, GenerationFormPreferences, Health, Queue, Settings, SettingsPatch, SetupRequest, Song, Update, ModelCatalog, ModelSelection, ImportRequest, ImportPreview, ImportResult } from "./types";
+import type { GenerationPolicy, Bootstrap, Filter, Folder, Generation, GenerationFormPreferences, Health, Queue, Settings, SettingsPatch, SetupRequest, Song, Update, ModelCatalog, ModelSelection, ImportRequest, ImportPreview, ImportResult } from "./types";
 
 async function command<T>(name: string, args?: Record<string, unknown>): Promise<T> {
   try { return await invoke<T>(name, args); }
@@ -33,6 +33,7 @@ export const backend = {
   queue: () => command<Queue>("queue"),
   settings: () => command<Settings>("get_settings"),
   saveSettings: (values: SettingsPatch) => command<Settings>("save_settings", { values }),
+  generationPolicy: (selection?: ModelSelection, refresh = false) => command<GenerationPolicy>("generation_policy", { selection: selection ?? null, refresh }),
   generationFormPreferences: () => command<GenerationFormPreferences>("get_generation_form_preferences"),
   saveGenerationFormPreferences: (values: GenerationFormPreferences) => command<void>("save_generation_form_preferences", { values }),
   health: () => command<Health>("health"),

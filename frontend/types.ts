@@ -52,7 +52,7 @@ export interface JobProgress {
 export interface ModelSelection { provider: string; synthesis: string; language: string }
 export interface CatalogModel {
   file: string; provider: string; role: "synthesis" | "language" | "dependency"; family: string;
-  precision: string; estimated_bytes: number; sha256: string; recommended_steps: number | null;
+  precision: string; estimated_bytes: number; sha256: string; recommended_steps: number | null; suggested_steps?: number | null;
   verified: boolean; present: boolean; partial_bytes: number;
 }
 export interface TitleModel extends Model { verified: boolean; present: boolean; partial_bytes: number }
@@ -78,3 +78,9 @@ export interface ImportPreview {
 }
 export interface ImportResult { songs: number; files: number; songs_dir: string; missing: MissingAudio[] }
 export interface ImportProgress { phase: "checking" | "copying" | "committing"; copied_bytes: number; total_bytes: number; files: number; total_files: number }
+
+export interface GenerationPolicy {
+  backend: "cpu" | "gpu" | "unknown";
+  recommended_steps: number;
+  defaults: GenerationFormPreferences;
+}

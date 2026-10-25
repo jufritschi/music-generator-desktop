@@ -23,7 +23,7 @@ impl Default for GenerationFormPreferences {
         Self {
             duration: 90.0,
             bpm: 0,
-            inference_steps: 80,
+            inference_steps: 30,
             lm_temperature: 1.2,
             variants: 2,
         }
@@ -48,8 +48,8 @@ fn valid(key: &str, value: &Value) -> bool {
 }
 
 impl GenerationFormPreferences {
-    fn from_stored(value: Value) -> Self {
-        let mut normalized = serde_json::to_value(Self::default()).unwrap();
+    fn from_stored(value: Value, defaults: &Self) -> Self {
+        let mut normalized = serde_json::to_value(defaults).unwrap();
         for (key, fallback) in normalized.as_object_mut().unwrap() {
             if let Some(value) = value.get(key).filter(|v| valid(key, v)) {
                 *fallback = value.clone();
@@ -61,6 +61,13 @@ impl GenerationFormPreferences {
 
 impl Database {
     pub fn generation_form_preferences(&self) -> Result<GenerationFormPreferences> {
+        self.generation_form_preferences_with_defaults(&GenerationFormPreferences::default())
+    }
+
+    pub fn generation_form_preferences_with_defaults(
+        &self,
+        defaults: &GenerationFormPreferences,
+    ) -> Result<GenerationFormPreferences> {
         let text: Option<String> = self
             .lock()
             .query_row("SELECT value FROM settings WHERE key=?1", [KEY], |row| {
@@ -76,7 +83,7 @@ impl Database {
                 }
             })
             .unwrap_or(Value::Null);
-        Ok(GenerationFormPreferences::from_stored(value))
+        Ok(GenerationFormPreferences::from_stored(value, defaults))
     }
 
     // This independent preference never changes engine configuration or takes an operation permit.
@@ -177,6 +184,39 @@ mod tests {
                 ..Default::default()
             }
         );
+    }
+
+    #[test]
+    fn device_defaults_fill_only_missing_or_invalid_values() {
+        let root = tempfile::tempdir().unwrap();
+        let db = Database::open(root.path()).unwrap();
+        for steps in [8, 30, 80] {
+            let defaults = GenerationFormPreferences {
+                inference_steps: steps,
+                ..Default::default()
+            };
+            store(&db, "{}");
+            assert_eq!(
+                db.generation_form_preferences_with_defaults(&defaults)
+                    .unwrap()
+                    .inference_steps,
+                steps
+            );
+            store(&db, r#"{"inference_steps":201}"#);
+            assert_eq!(
+                db.generation_form_preferences_with_defaults(&defaults)
+                    .unwrap()
+                    .inference_steps,
+                steps
+            );
+            store(&db, r#"{"inference_steps":80}"#);
+            assert_eq!(
+                db.generation_form_preferences_with_defaults(&defaults)
+                    .unwrap()
+                    .inference_steps,
+                80
+            );
+        }
     }
 
     #[test]

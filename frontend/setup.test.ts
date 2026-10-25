@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({ estimate: vi.fn(), listen: vi.fn() }));
 vi.mock("./backend", () => ({ backend: mocks }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: mocks.listen }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
-vi.mock("./i18n.js", () => ({ LANG: "de", LANGS: { de: "Deutsch" }, applyI18n: vi.fn(), setLang: vi.fn(), t: (key: string) => key }));
+vi.mock("./i18n.js", async importOriginal => ({ ...(await importOriginal<typeof import("./i18n.js")>()), LANG: "de", LANGS: { de: "Deutsch" }, applyI18n: vi.fn(), setLang: vi.fn(), t: (key: string) => key }));
 
 beforeEach(() => {
   vi.resetModules(); vi.resetAllMocks();
