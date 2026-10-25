@@ -33,6 +33,22 @@ beforeEach(() => {
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it("explains the missing XL recommendation in both simple and Expert Mode", async () => {
+  mocks.settings.mockResolvedValue({ ...saved(), expert_mode: false, recommended_profiles: [standard] });
+  const picker = await import("./model-picker");
+  await picker.initializeModelPicker();
+  const hint = document.querySelector<HTMLElement>("#creatorXlRamHint")!;
+  expect(hint.hidden).toBe(false);
+  expect(document.querySelector("#creatorModel")!.getAttribute("aria-describedby")).toContain("creatorXlRamHint");
+  mocks.settings.mockResolvedValue({ ...saved(), recommended_profiles: [standard] });
+  await picker.initializeModelPicker();
+  expect(hint.hidden).toBe(false);
+  mocks.settings.mockResolvedValue(saved());
+  await picker.initializeModelPicker();
+  expect(hint.hidden).toBe(true);
+  expect(document.querySelector("#creatorModel")!.getAttribute("aria-describedby")).toBe("currentModels");
+});
+
 it("keeps a restored song profile when shared title-model installation emits models-changed", async () => {
   const picker = await import("./model-picker");
   await picker.initializeModelPicker();

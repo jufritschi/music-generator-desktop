@@ -354,6 +354,18 @@ pub async fn health(state: Desktop<'_>) -> Result<Value> {
 }
 
 #[tauri::command]
+pub fn export_default_path(
+    state: Desktop<'_>,
+    app: AppHandle,
+    filename: String,
+) -> Result<PathBuf> {
+    let fallback = crate::paths::dialog_directory(app, None, None, true)?;
+    state
+        .db
+        .export_default_path(&filename, std::path::Path::new(&fallback))
+}
+
+#[tauri::command]
 pub async fn export_file(
     state: Desktop<'_>,
     kind: String,

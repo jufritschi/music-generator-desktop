@@ -2,8 +2,8 @@ import { startGeneration, loadGenerationPolicy, updateCpuWarnings } from "./gene
 import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
 import { extractStyleTags } from "./style-tags";
 import { measureMelody, describeIdea, toWav } from "./melody";
-import { modelErrorText, settingsChanges } from "./expert-mode";
-import { createSettingsDialog } from "./settings-dialog";
+import { modelErrorText } from "./expert-mode";
+import { initializeSettings } from "./settings";
 import { backend } from "./backend";
 import { initializeAudioImport } from "./audio-import";
 import { pathErrorText } from "./path-dialogs";
@@ -723,30 +723,7 @@ async function checkHealth() {
     return h;
   } catch { el.className = "box small err"; $("#healthStatus").textContent = t("backend_offline"); renderBackendStatus($("#backendStatus"), undefined, true); }
 }
-const dlg = $("#settingsDlg"), sf = $("#settingsForm");
-let settingsBefore;
-$("#btnSettings").onclick = async () => {
-  if (settingsDialog.blocksGeneration()) return;
-  const s = await backend.settings();
-  if (settingsDialog.blocksGeneration()) return;
-  settingsBefore = s;
-  sf.expert_mode.checked = s.expert_mode;
-  for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format", "cpu_iteration_behavior"]) sf[k].value = s[k];
-  sf.export_format.querySelector("option[value=mp3]").disabled = !s.mp3_available;
-  $("#expHint").hidden = s.mp3_available;
-  $("#settingsIntelHint").hidden = !s.cpu_only;
-  sf.songs_dir.placeholder = s.songs_dir_default;   // Standard als Platzhalter, leer lassen = Standard
-  dlg.returnValue = "";
-  settingsDialog.resetStatus();
-  dlg.showModal();
-};
-const saveSettings = async () => {
-  const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, cpu_iteration_behavior: sf.cpu_iteration_behavior.value, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
-  if (!Object.keys(values).length) return;
-  await backend.saveSettings(values);
-};
-const settingsDialog = createSettingsDialog(dlg, saveSettings, (err) => err instanceof Error && err.message === "mp3_failed" ? t("mp3_failed") : modelErrorText(err, t));
-document.addEventListener("open-settings", () => { $("#btnSettings").click(); });
+const dlg = $("#settingsDlg");
 $("#settingsMoveLibrary").onclick = () => {
   dlg.addEventListener("close", () => requestAnimationFrame(() => document.dispatchEvent(new Event("move-library"))), { once: true });
   dlg.close("cancel");
@@ -776,7 +753,7 @@ $("#updCheck").onclick = async () => {
 $("#manageModels").onclick = () => { dlg.close("cancel"); document.dispatchEvent(new Event("manage-models")); };
 
 const loadExportFmt = () => backend.settings().then((s) => { exportFmt = s.export_format === "mp3" ? "mp3" : "wav"; }).catch(() => {});
-dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { await loadExportFmt(); render(); checkHealth(); } });
+const settingsDialog = initializeSettings(async () => { await loadExportFmt(); render(); checkHealth(); });
 
 // Sprachumschalter (DE | EN)
 $("#uiLang").addEventListener("change", (e) => setLang(e.target.value));

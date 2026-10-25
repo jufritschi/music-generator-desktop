@@ -45,6 +45,7 @@ export const backend = {
     return command<Record<string, unknown>>("analyze", { data: Array.from(new Uint8Array(await file.arrayBuffer())), filename, selection });
   },
   export: (kind: "audio" | "lyrics" | "zip", destination: string, id: string | null = null, folder: string | null = null) => command<void>("export_file", { kind, destination, id, folder }),
+  exportDefaultPath: (filename: string) => command<string>("export_default_path", { filename }),
   checkUpdate: () => command<Update>("check_update"),
   exit: () => command<void>("exit_app"),
 };

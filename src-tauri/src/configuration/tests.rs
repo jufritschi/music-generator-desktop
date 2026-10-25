@@ -219,6 +219,45 @@ async fn settings_use_the_same_authorize_before_move_contract_as_setup() {
 }
 
 #[tokio::test]
+async fn device_changes_are_durable_and_rejected_during_engine_work() {
+    let library = Library::new();
+    for device in ["cpu", "auto"] {
+        let saved = save(
+            library.state.clone(),
+            SettingsPatch {
+                lm_device: Some(device.into()),
+                ..Default::default()
+            },
+            |_| Ok(()),
+        )
+        .await
+        .unwrap();
+        assert_eq!(saved.lm_device, device);
+        let reopened = Database::open(library.root.path()).unwrap();
+        assert_eq!(reopened.settings().unwrap().lm_device, device);
+        assert_eq!(
+            reopened.settings().unwrap().songs_dir,
+            library.db.settings().unwrap().songs_dir
+        );
+    }
+    for kind in [OperationKind::Generation, OperationKind::Analysis] {
+        let operation = library.state.runtime.try_begin(kind).unwrap();
+        assert!(save(
+            library.state.clone(),
+            SettingsPatch {
+                lm_device: Some("cpu".into()),
+                ..Default::default()
+            },
+            |_| Ok(())
+        )
+        .await
+        .is_err());
+        assert_eq!(library.db.settings().unwrap().lm_device, "auto");
+        assert!(!operation.cancellation().is_cancelled());
+    }
+}
+
+#[tokio::test]
 async fn settings_authorization_failure_changes_neither_files_nor_other_settings() {
     let library = Library::new();
     let before = serde_json::to_value(library.db.settings().unwrap()).unwrap();

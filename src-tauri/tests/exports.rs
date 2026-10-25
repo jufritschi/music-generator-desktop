@@ -22,6 +22,127 @@ fn library(root: &std::path::Path) -> (Arc<Database>, String, PathBuf) {
     (db, id, file)
 }
 
+#[test]
+fn first_export_starts_in_downloads_with_the_requested_filename() {
+    let root = tempfile::tempdir().unwrap();
+    let downloads = tempfile::tempdir().unwrap();
+    let db = Database::open(root.path()).unwrap();
+    assert_eq!(
+        db.export_default_path("Rain.mp3", downloads.path())
+            .unwrap(),
+        downloads.path().join("Rain.mp3")
+    );
+}
+
+#[test]
+fn dialog_filenames_cannot_replace_the_export_directory() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Database::open(root.path()).unwrap();
+    assert_eq!(
+        db.export_default_path("../Rain:Night?.wav", root.path())
+            .unwrap(),
+        root.path().join(".._Rain_Night_.wav")
+    );
+    assert_eq!(
+        db.export_default_path("..", root.path()).unwrap(),
+        root.path().join("Song")
+    );
+}
+
+#[test]
+fn invalid_export_preferences_fall_back_without_changing_other_settings() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Database::open(root.path()).unwrap();
+    let connection = rusqlite::Connection::open(root.path().join("music.db")).unwrap();
+    for stored in [
+        "broken json".to_owned(),
+        "\"relative\"".to_owned(),
+        serde_json::to_string(&root.path().join("music.db")).unwrap(),
+    ] {
+        connection
+            .execute(
+                "INSERT OR REPLACE INTO settings(key,value) VALUES('last_export_dir',?1)",
+                [stored],
+            )
+            .unwrap();
+        assert_eq!(
+            db.export_default_path("Rain.wav", root.path()).unwrap(),
+            root.path().join("Rain.wav")
+        );
+    }
+    assert_eq!(db.settings().unwrap().lm_device, "auto");
+}
+
+#[tokio::test]
+async fn remembering_failure_does_not_prevent_export() {
+    let root = tempfile::tempdir().unwrap();
+    let (db, id, _) = library(root.path());
+    let connection = rusqlite::Connection::open(root.path().join("music.db")).unwrap();
+    connection.execute_batch("CREATE TRIGGER reject_export_preference BEFORE INSERT ON settings WHEN NEW.key='last_export_dir' BEGIN SELECT RAISE(ABORT,'injected failure'); END;").unwrap();
+    let destination = root.path().join("Rain.wav");
+    export(
+        db,
+        root.path().into(),
+        "audio".into(),
+        Some(id),
+        None,
+        destination.clone(),
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(std::fs::read(destination).unwrap(), b"lossless original");
+}
+
+#[tokio::test]
+async fn selected_export_directory_is_shared_and_survives_restart_even_after_export_failure() {
+    let root = tempfile::tempdir().unwrap();
+    let downloads = tempfile::tempdir().unwrap();
+    let selected = tempfile::tempdir().unwrap();
+    let (db, id, _) = library(root.path());
+    export(
+        db.clone(),
+        root.path().into(),
+        "audio".into(),
+        Some(id),
+        None,
+        selected.path().join("Rain.wav"),
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    drop(db);
+    let db = Arc::new(Database::open(root.path()).unwrap());
+    assert_eq!(
+        db.export_default_path("Lyrics.txt", downloads.path())
+            .unwrap(),
+        selected.path().join("Lyrics.txt")
+    );
+    let another = tempfile::tempdir().unwrap();
+    assert!(export(
+        db.clone(),
+        root.path().into(),
+        "audio".into(),
+        Some("missing".into()),
+        None,
+        another.path().join("Song.wav"),
+        CancellationToken::new()
+    )
+    .await
+    .is_err());
+    assert_eq!(
+        db.export_default_path("Music Generator.zip", downloads.path())
+            .unwrap(),
+        another.path().join("Music Generator.zip")
+    );
+    drop(another);
+    assert_eq!(
+        db.export_default_path("Rain.wav", downloads.path())
+            .unwrap(),
+        downloads.path().join("Rain.wav")
+    );
+}
+
 #[tokio::test]
 async fn wav_audio_and_zip_preserve_original_audio_bytes() {
     let root = tempfile::tempdir().unwrap();

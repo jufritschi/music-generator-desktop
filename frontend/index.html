@@ -45,7 +45,7 @@
     <div class="top-right">
       <select id="uiLang" class="langsw" aria-label="Language / Sprache" title="Language / Sprache"></select>
       <div id="status" class="box small"><span id="healthStatus" role="status" aria-live="polite"></span><div id="backendStatus"></div></div>
-      <button id="btnSettings" class="gear" title="Setup" aria-label="Setup">
+      <button type="button" id="btnSettings" class="gear" title="Einstellungen" aria-label="Einstellungen" data-i18n-title="settings_title" data-i18n-aria="settings_title">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
     </div>
@@ -57,6 +57,7 @@
       <label class="field" for="creatorModel"><span class="lbl" data-i18n="picker_title">Modelle</span><select id="creatorModel" aria-describedby="currentModels"></select></label>
       <span id="currentModels" class="small" role="status"></span>
     </div>
+    <p id="creatorXlRamHint" class="small" data-i18n="creator_xl_ram_hint" hidden></p>
     <div id="creatorModelNotice" hidden>
       <p id="creatorModelError" class="setup-error" role="alert"></p>
       <button type="button" id="creatorModelSettings" class="sek" data-i18n="expert_settings"></button>
@@ -213,12 +214,15 @@
   </div>
 </footer>
 
-<dialog id="settingsDlg">
+<dialog id="settingsDlg" aria-labelledby="settingsHeading">
   <form method="dialog" id="settingsForm">
-    <h2 class="col-title">Setup</h2>
+    <h2 id="settingsHeading" class="col-title" data-i18n="settings_title">Einstellungen</h2>
+    <p id="settingsStatus" class="small" role="status" aria-live="polite"></p>
+    <button type="button" id="settingsRetry" class="sek" data-i18n="settings_retry" hidden></button>
+    <fieldset id="settingsFields">
     <label class="field"><span class="lbl" title="Klingt der Song verzerrt oder schrecklich, hier „Nur CPU“ wählen. Das Sprachmodell rechnet dann auf dem Prozessor statt auf der Grafik." data-i18n-title="lm_dev_tip" data-i18n="lm_dev">Sprachmodell rechnet auf</span>
       <select name="lm_device"><option value="auto" data-i18n="lm_dev_auto">Automatisch</option><option value="cpu" data-i18n="lm_dev_cpu">Nur CPU</option></select>
-      <span class="small" data-i18n="lm_dev_hint">Gilt ab der nächsten Generierung oder Analyse.</span>
+      <span class="small" data-i18n="settings_device_hint">Wird sofort gespeichert und gilt ab der nächsten Generierung oder Analyse, auch nach „Abbrechen“. Andere Änderungen mit „Speichern“ übernehmen.</span>
       <span class="small" id="settingsIntelHint" data-i18n="desktop_intel_cpu_hint" hidden></span>
     </label>
     <label class="field"><span class="lbl" data-i18n="cpu_behavior_label">Verhalten bei hohen CPU-Iterationen</span>
@@ -258,6 +262,7 @@
     <div class="field"><span class="lbl">GitHub</span>
       <div class="upd-row"><a href="https://github.com/frankhildebrandt/music-generator" target="_blank" rel="noopener" class="sek" data-i18n="github">GitHub</a><span class="small" data-i18n="github_info">Quellcode und Anleitung</span></div>
     </div>
+    </fieldset>
     <p id="settingsSaveStatus" class="small" role="status" hidden></p>
     <p id="settingsSaveError" class="small err" role="alert" hidden></p>
     <div class="submit">
