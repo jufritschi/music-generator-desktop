@@ -10,6 +10,10 @@ import { architecture, exists, files, hash, platform, root, run, target, verifyE
 import { verifyMacSandbox } from "./verify-macos-sandbox.mjs";
 import { verifyLinuxRuntime } from "./linux-runtime.mjs";
 
+function startupLocation(app) {
+  return JSON.parse(execFileSync(app, ["--startup-location-probe"], { encoding: "utf8", timeout: 15000 }));
+}
+
 // Exercise the distributed files from a relocated directory, without loading any models.
 const output = path.join(root, "release");
 const diskImage = process.argv.includes("--dmg");
@@ -30,6 +34,8 @@ try {
     await run("hdiutil", ["attach", "-readonly", "-nobrowse", "-mountpoint", mount, artifact]);
     mounted = true;
     assert.equal(await readlink(path.join(mount, "Applications")), "/Applications");
+    const mountedApp = path.join(mount, "Music Generator.app/Contents/MacOS/music-generator");
+    assert.equal(startupLocation(mountedApp).installation_required, true, "App must require installation while running from the read-only DMG");
     await run("ditto", [path.join(mount, "Music Generator.app"), path.join(work, "Music Generator.app")]);
     await run("hdiutil", ["detach", mount]); mounted = false;
   } else if (platform === "linux") {
@@ -60,6 +66,7 @@ try {
     }
   }
   if (platform === "macos") {
+    assert.equal(startupLocation(app).installation_required, false, "Copied app must start after ejecting the DMG");
     const expectedArch = architecture === "x64" ? "x86_64" : "arm64";
     for (const file of extracted) {
       const bytes = await readFile(file);

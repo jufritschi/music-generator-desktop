@@ -1,3 +1,11 @@
+# Issue #22 — installation required when starting from a macOS disk image (2026-10-25)
+
+Startup now checks the real containing mount and native Disk Arbitration device identity before loading the main frontend or opening the library. A confirmed read-only disk image keeps the splash in a terminal installation-required state with instructions and Quit in all twelve languages. Regular folders, external drives and writable images remain allowed. Mount resolution covers App Translocation; unknown metadata permits startup with a diagnostic.
+
+Local checks passed: **132 Rust tests, 113 frontend tests, 28 desktop-script tests, TypeScript/Vite, ESLint, Rustfmt and Clippy with warnings as errors**. One pre-existing subprocess-fixture test is intentionally ignored. A native regression reproduced and fixed releasing a null Core Foundation result when device metadata is unavailable. The package verifier now invokes the real sandboxed detector on the mounted read-only DMG and again after copying and ejecting it.
+
+An isolated ad-hoc-signed debug app with the actual App Sandbox entitlements displayed the German blocking screen when launched directly from a DMG mounted outside `/Volumes`. Its application data had not been initialized; Quit closed it. After copying and ejecting the DMG, the same app reached setup. Native probes also passed from a temporary `/Applications` copy and a writable test image under `/Volumes`; all task-created mounts and that Applications copy were removed. No physical external drive was attached. App Translocation is covered through mount-metadata tests, not a locally exercised Gatekeeper launch. See [screenshots and acceptance details](pr/dmg-installation/README.md).
+
 # PR #5 review corrections — 2026-10-25
 
 The Standards and Spec reviews identified three material issues, now fixed:

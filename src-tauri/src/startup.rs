@@ -14,7 +14,7 @@ use std::{
     time::Instant,
 };
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
-use tokio::sync::{watch, Mutex as AsyncMutex};
+use tokio::sync::{watch, Mutex as AsyncMutex, OnceCell};
 
 #[derive(Clone, Default, Serialize)]
 pub struct Status {
@@ -31,6 +31,7 @@ pub struct Startup {
     painted_ms: AtomicU64,
     initialization: AsyncMutex<()>,
     status: Mutex<Status>,
+    launch_allowed: OnceCell<bool>,
 }
 
 impl Startup {
@@ -42,6 +43,7 @@ impl Startup {
             painted_ms: AtomicU64::new(0),
             painted: watch::channel(false).0,
             initialization: AsyncMutex::new(()),
+            launch_allowed: OnceCell::new(),
             status: Mutex::new(Status {
                 phase: "starting",
                 ..Status::default()
@@ -49,14 +51,23 @@ impl Startup {
         }
     }
 
+    pub fn snapshot(&self) -> Status {
+        self.status.lock().expect("startup status poisoned").clone()
+    }
+
+    fn record(&self, phase: &'static str, error: Option<String>) -> Status {
+        let mut status = self.status.lock().expect("startup status poisoned");
+        if status.phase == "installation_required" {
+            return status.clone();
+        }
+        status.sequence += 1;
+        status.phase = phase;
+        status.error = error;
+        status.clone()
+    }
+
     pub fn report(&self, app: &AppHandle, phase: &'static str, error: Option<String>) {
-        let status = {
-            let mut status = self.status.lock().expect("startup status poisoned");
-            status.sequence += 1;
-            status.phase = phase;
-            status.error = error;
-            status.clone()
-        };
+        let status = self.record(phase, error);
         tracing::info!(
             elapsed_ms = self.started.elapsed().as_millis(),
             phase,
@@ -65,8 +76,40 @@ impl Startup {
         let _ = app.emit_to("splash", "startup-status", status);
     }
 
+    async fn allowed(&self) -> bool {
+        let allowed = *self
+            .launch_allowed
+            .get_or_init(|| async {
+                match tauri::async_runtime::spawn_blocking(
+                    crate::launch_location::installation_required,
+                )
+                .await
+                {
+                    Ok(required) => !required,
+                    Err(error) => {
+                        eprintln!("Startup location check failed; allowing startup: {error}");
+                        true
+                    }
+                }
+            })
+            .await;
+        if !allowed {
+            self.record("installation_required", None);
+        }
+        allowed
+    }
+
+    async fn require_allowed(&self, app: &AppHandle) -> Result<()> {
+        if self.allowed().await {
+            return Ok(());
+        }
+        self.report(app, "installation_required", None);
+        Err(message("Installation required"))
+    }
+
     /// Defer disk access until the splash has painted; serialize retries and reuse successful state.
     pub async fn prepare(&self, app: &AppHandle) -> Result<Arc<AppState>> {
+        self.require_allowed(app).await?;
         let mut painted = self.painted.subscribe();
         tokio::time::timeout(
             std::time::Duration::from_secs(15),
@@ -111,11 +154,12 @@ impl Startup {
 
 #[tauri::command]
 pub fn startup_status(startup: State<'_, Startup>) -> Status {
-    startup
-        .status
-        .lock()
-        .expect("startup status poisoned")
-        .clone()
+    startup.snapshot()
+}
+
+#[tauri::command]
+pub async fn startup_allowed(startup: State<'_, Startup>, app: AppHandle) -> Result<bool> {
+    Ok(startup.require_allowed(&app).await.is_ok())
 }
 
 #[tauri::command]
@@ -142,12 +186,13 @@ pub fn startup_error(
 }
 
 #[tauri::command]
-pub fn retry_startup(
+pub async fn retry_startup(
     window: WebviewWindow,
     startup: State<'_, Startup>,
     app: AppHandle,
 ) -> Result<()> {
     require_window(&window, "splash")?;
+    startup.require_allowed(&app).await?;
     if startup
         .status
         .lock()
@@ -169,12 +214,13 @@ pub fn retry_startup(
 }
 
 #[tauri::command]
-pub fn startup_complete(
+pub async fn startup_complete(
     window: WebviewWindow,
     startup: State<'_, Startup>,
     app: AppHandle,
 ) -> Result<()> {
     require_window(&window, "main")?;
+    startup.require_allowed(&app).await?;
     window.show().map_err(|e| message(e.to_string()))?;
     let _ = window.set_focus();
     startup.report(&app, "ready", None);
@@ -189,5 +235,39 @@ fn require_window(window: &WebviewWindow, label: &str) -> Result<()> {
         Ok(())
     } else {
         Err(message("Unavailable in this window"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn blocked_start_keeps_installation_status_without_creating_user_data() {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("unused-data");
+        let startup = Startup::new(root.clone(), temporary.path().into(), Instant::now());
+        startup.launch_allowed.set(false).unwrap();
+        assert!(!startup.allowed().await);
+        startup.record("error", Some("late failure".into()));
+        startup.record("ready", None);
+        assert_eq!(startup.snapshot().phase, "installation_required");
+        assert!(startup.snapshot().error.is_none());
+        assert!(!root.exists());
+        assert!(!startup.allowed().await);
+    }
+
+    #[tokio::test]
+    async fn installed_start_can_progress_normally() {
+        let temporary = tempfile::tempdir().unwrap();
+        let startup = Startup::new(
+            temporary.path().into(),
+            temporary.path().into(),
+            Instant::now(),
+        );
+        startup.launch_allowed.set(true).unwrap();
+        assert!(startup.allowed().await);
+        startup.record("ready", None);
+        assert_eq!(startup.snapshot().phase, "ready");
     }
 }

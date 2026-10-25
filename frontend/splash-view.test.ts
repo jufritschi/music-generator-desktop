@@ -9,6 +9,22 @@ beforeEach(() => {
   localStorage.setItem("ui_lang", "de");
 });
 
+it("requires installation with only a quit action and keeps that state after later events", () => {
+  const render = splashView(startupText());
+  render({ sequence: 2, phase: "installation_required", error: null });
+  expect(document.querySelector("#splashStatus")!.textContent).toBe("Bitte installiere Music Generator.");
+  expect(document.querySelector("#splashInstallation")!.textContent).toContain("wirf das DMG aus");
+  expect(document.querySelector<HTMLElement>("#splashQuit")!.hidden).toBe(false);
+  expect(document.querySelector("#splashQuit")!.textContent).toBe("Beenden");
+  for (const id of ["#splashProgress", "#splashRetry", "#splashError", "#splashDetails", "#splashSlow"]) {
+    expect(document.querySelector<HTMLElement>(id)!.hidden).toBe(true);
+  }
+  render({ sequence: 3, phase: "error", error: "late failure" });
+  render({ sequence: 4, phase: "ready", error: null });
+  expect(document.querySelector("#splashStatus")!.textContent).toBe("Bitte installiere Music Generator.");
+  expect(document.body.dataset.installationRequired).toBe("true");
+});
+
 it("shows the static icon and load message even before JavaScript runs", () => {
   expect(document.querySelector(".app-icon")).not.toBeNull();
   expect(document.querySelectorAll(".waveform rect")).toHaveLength(6);

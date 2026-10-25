@@ -34,6 +34,16 @@ it.each(Object.keys(LANGS) as (keyof typeof LANGS)[])("localizes the complete er
   expect(document.querySelector("#splashError")!.textContent).not.toContain("database is locked");
 });
 
+it.each(Object.keys(LANGS) as (keyof typeof LANGS)[])("localizes the installation requirement in %s", language => {
+  localStorage.setItem("ui_lang", language);
+  const text = startupText();
+  splashView(text)({ sequence: 1, phase: "installation_required", error: null });
+  expect(document.documentElement.lang).toBe(language);
+  expect(document.querySelector("#splashStatus")!.textContent).toBe(text.installation_required);
+  expect(document.querySelector("#splashInstallation")!.textContent).toBe(text.installation_steps);
+  expect(document.querySelector("#splashQuit")!.textContent).toBe(text.quit);
+});
+
 it.each([
   ["DE-de", "en-US", "de"], ["zh_Hant_TW", "en", "zh"],
   ["unsupported", "fr-CA", "fr"], [null, "pt-BR", "pt"],

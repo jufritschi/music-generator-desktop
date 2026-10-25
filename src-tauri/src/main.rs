@@ -5,6 +5,11 @@ fn main() {
         std::process::exit(code);
     }
     #[cfg(target_os = "macos")]
+    if std::env::args().nth(1).as_deref() == Some("--startup-location-probe") {
+        music_generator::sandbox::probe::startup_location();
+        return;
+    }
+    #[cfg(target_os = "macos")]
     if std::env::args().nth(1).as_deref() == Some("--sandbox-probe") {
         let path = std::env::args_os()
             .nth(2)
