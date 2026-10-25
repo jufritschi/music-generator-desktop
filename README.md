@@ -6,7 +6,7 @@ Lokale Musikgenerierung als rahmenlose **Tauri-Desktop-App** für macOS, Windows
 
 ## Projektstatus
 
-**Stand: 25. Oktober 2026 · Entwicklungsstand: 0.1.0** (siehe [`package.json`](package.json) und [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json)). Die Anwendung nutzt inzwischen Tauri, Rust und eine TypeScript-/JavaScript-Oberfläche. In diesem Repository ersetzt die Desktop-App den Python-Webserver mit Installations- und ON/OFF-Skripten. Die Web-App wird im Repository [music-generator](https://github.com/rabbitfiremediacreation/music-generator) weiter gepflegt.
+**Stand: 25. Oktober 2026 · Entwicklungsstand: 0.1.1** (siehe [`package.json`](package.json) und [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json)). Die Anwendung nutzt inzwischen Tauri, Rust und eine TypeScript-/JavaScript-Oberfläche. In diesem Repository ersetzt die Desktop-App den Python-Webserver mit Installations- und ON/OFF-Skripten. Die Web-App wird im Repository [music-generator](https://github.com/rabbitfiremediacreation/music-generator) weiter gepflegt.
 
 ACE-Step ist die unterstützte Musikmodellfamilie. Der aktuelle Stand enthält eine Modellauswahl direkt im Studio, automatische lokale Songtitel, Echtzeit-Fortschritt und native Audio-/Text-/ZIP-Exporte. Die Versionsangabe beschreibt den Quellcode; verfügbare Downloads können einen anderen Stand haben.
 
