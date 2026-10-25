@@ -3,6 +3,7 @@ import "./desktop-i18n";
 import "./model-i18n";
 import "./expert-i18n";
 import "./title-i18n";
+import "./import-i18n";
 import "./form-preferences-i18n";
 import { applyI18n } from "./i18n.js";
 import { backend } from "./backend";
@@ -10,6 +11,7 @@ import { initializeDesktop } from "./desktop";
 import { element } from "./dom";
 import { showSetup } from "./setup";
 import type { Bootstrap } from "./types";
+import { openLibraryAssistant } from "./import-wizard";
 import { initializeModelPicker } from "./model-picker";
 
 let bootstrap: Bootstrap;
@@ -32,4 +34,8 @@ export async function startApp(): Promise<void> {
 
 document.addEventListener("manage-models", () => {
   void backend.settings().then((settings) => showSetup({ ...bootstrap, settings, needs_setup: false, error: null }, showStudio));
+});
+
+document.addEventListener("move-library", () => {
+  void backend.settings().then(settings => openLibraryAssistant("move", settings.songs_dir));
 });
