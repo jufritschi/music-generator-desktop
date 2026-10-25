@@ -30,7 +30,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 it("previews and imports the unsaved setup target without changing models", async () => {
   const { openLibraryAssistant } = await import("./import-wizard");
   const onImported = vi.fn();
-  await openLibraryAssistant("import", "/chosen", onImported);
+  await openLibraryAssistant("import", "/chosen", "macos", onImported);
   expect(get<HTMLButtonElement>("#importRun").disabled).toBe(true);
   mocks.open.mockResolvedValueOnce("/old");
   get("#importSourcePick").click();
@@ -50,7 +50,7 @@ it("requires explicit partial import and supports a separate source grant", asyn
   const { openLibraryAssistant } = await import("./import-wizard");
   const missing = [{ id: "old", title: "Keep lyrics", file: "missing.wav" }];
   mocks.previewImport.mockImplementation(async (request: ImportRequest) => ({ ...checked, missing, can_import: request.allow_partial }));
-  await openLibraryAssistant("import", "/chosen");
+  await openLibraryAssistant("import", "/chosen", "macos");
   mocks.open.mockResolvedValueOnce("/old"); get("#importSourcePick").click();
   await vi.waitFor(() => expect(get("#importPartialRow").hidden).toBe(false));
   expect(get<HTMLButtonElement>("#importRun").disabled).toBe(true);
@@ -67,7 +67,7 @@ it("explains a selected songs folder and requests a fresh parent grant", async (
   const { openLibraryAssistant } = await import("./import-wizard");
   mocks.previewImport.mockResolvedValueOnce({ ...checked, can_import: false, issues: [{ code: "select_project", path: "/old/data/songs" }] }).mockResolvedValue(checked);
   mocks.open.mockResolvedValueOnce("/old/data/songs").mockResolvedValueOnce("/old/data");
-  await openLibraryAssistant("import", "/chosen"); get("#importSourcePick").click();
+  await openLibraryAssistant("import", "/chosen", "macos"); get("#importSourcePick").click();
   await settle();
   expect(mocks.open).toHaveBeenLastCalledWith({ directory: true, defaultPath: "/old/data" });
   expect(mocks.previewImport).toHaveBeenLastCalledWith(expect.objectContaining({ root: "/old/data" }));
@@ -75,7 +75,7 @@ it("explains a selected songs folder and requests a fresh parent grant", async (
 
 it("persists the destination grant and invalidates the previous preview", async () => {
   const { openLibraryAssistant } = await import("./import-wizard");
-  await openLibraryAssistant("import", "/chosen");
+  await openLibraryAssistant("import", "/chosen", "macos");
   mocks.open.mockResolvedValueOnce("/old"); get("#importSourcePick").click(); await settle();
   mocks.open.mockResolvedValueOnce("/new"); get("#importTargetPick").click();
   await vi.waitFor(() => expect(mocks.previewImport).toHaveBeenLastCalledWith(expect.objectContaining({ songs_dir: "/new" })));
@@ -85,7 +85,7 @@ it("persists the destination grant and invalidates the previous preview", async 
 it("moves an existing library through settings and lets a running transfer be cancelled", async () => {
   const { openLibraryAssistant } = await import("./import-wizard");
   mocks.saveSettings.mockImplementation(() => new Promise(() => {}));
-  await openLibraryAssistant("move", "/chosen"); await settle();
+  await openLibraryAssistant("move", "/chosen", "macos"); await settle();
   expect(get("#importSourceStep").hidden).toBe(true);
   get("#importRun").click();
   await vi.waitFor(() => expect(mocks.saveSettings).toHaveBeenCalledWith({ songs_dir: "/chosen" }));
@@ -97,7 +97,7 @@ it("moves an existing library through settings and lets a running transfer be ca
 
 it("shows errors and rechecks before allowing another attempt", async () => {
   const { openLibraryAssistant } = await import("./import-wizard");
-  await openLibraryAssistant("import", "/chosen");
+  await openLibraryAssistant("import", "/chosen", "macos");
   mocks.open.mockResolvedValueOnce("/old"); get("#importSourcePick").click(); await settle();
   mocks.importLibrary.mockRejectedValueOnce(new Error("import_collision"));
   get("#importRun").click();
@@ -110,7 +110,7 @@ it.each(["import", "move"] as const)("shows byte progress and the commit phase d
   const { openLibraryAssistant } = await import("./import-wizard");
   mocks.importLibrary.mockImplementation(() => new Promise(() => {}));
   mocks.saveSettings.mockImplementation(() => new Promise(() => {}));
-  await openLibraryAssistant(mode, "/chosen");
+  await openLibraryAssistant(mode, "/chosen", "macos");
   if (mode === "import") { mocks.open.mockResolvedValueOnce("/old"); get("#importSourcePick").click(); }
   await settle();
   get("#importRun").click();

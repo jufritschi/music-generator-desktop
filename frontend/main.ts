@@ -37,5 +37,5 @@ document.addEventListener("manage-models", () => {
 });
 
 document.addEventListener("move-library", () => {
-  void backend.settings().then(settings => openLibraryAssistant("move", settings.songs_dir));
+  void backend.settings().then(settings => openLibraryAssistant("move", settings.songs_dir, bootstrap.hardware.platform));
 });

@@ -52,7 +52,7 @@ export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolea
       if (typeof path === "string") { await backend.rememberFolder(path); field.value = path; await updateEstimate(); }
     };
     element("#importLibrary").onclick = async () => {
-      await openLibraryAssistant("import", element<HTMLInputElement>("#setupSongs").value.trim(), (songsDir) => {
+      await openLibraryAssistant("import", element<HTMLInputElement>("#setupSongs").value.trim(), configuration.hardware.platform, (songsDir) => {
         element<HTMLInputElement>("#setupSongs").value = songsDir;
         configuration.settings.songs_dir = songsDir;
         element("#importStatus").textContent = t("desktop_import_done");
