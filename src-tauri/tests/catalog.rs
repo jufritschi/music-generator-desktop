@@ -97,6 +97,8 @@ fn compatibility_uses_the_complete_profile_and_keeps_cpu_only_intel_available() 
         vae_chunk: Some(256),
         platform: "macos",
         cpu_only: true,
+        nvidia: None,
+        cuda: None,
     };
     let mut s = selection();
     assert!(catalog::compatible(&s, &hw).unwrap());

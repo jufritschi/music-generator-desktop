@@ -1,5 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import type { GenerationPolicy, Bootstrap, Filter, Folder, Generation, GenerationFormPreferences, Health, Queue, Settings, SettingsPatch, SetupRequest, Song, Update, ModelCatalog, ModelSelection, ImportRequest, ImportPreview, ImportResult } from "./types";
+import type { GenerationPolicy, Bootstrap, Filter, Folder, Generation, GenerationFormPreferences, Health, Queue, Settings, SettingsPatch, SetupRequest, SetupResult, Song, Update, ModelCatalog, ModelSelection, ImportRequest, ImportPreview, ImportResult } from "./types";
 
 async function command<T>(name: string, args?: Record<string, unknown>): Promise<T> {
   try { return await invoke<T>(name, args); }
@@ -12,7 +12,7 @@ export const backend = {
   pickAudioFile: (directory: string, title: string, filterName: string) => command<{ name: string; directory: string; data: number[] } | null>("pick_audio_file", { directory, title, filterName }),
   rememberFolder: (path: string) => command<void>("remember_folder", { path }),
   bootstrap: () => command<Bootstrap>("bootstrap"),
-  setup: (request: SetupRequest) => command<{ ok: boolean; mode: string }>("setup_models", { request }),
+  setup: (request: SetupRequest) => command<SetupResult>("setup_models", { request }),
   estimate: (request: SetupRequest) => command<{ missing_bytes: number; free_bytes: number }>("setup_estimate", { request }),
   cancelSetup: () => command<void>("cancel_setup"),
   modelCatalog: () => command<ModelCatalog>("model_catalog"),

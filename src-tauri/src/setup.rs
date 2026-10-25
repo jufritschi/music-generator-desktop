@@ -89,7 +89,7 @@ pub async fn configure(
     )
     .await?;
     let settings = change.commit(async { Ok(settings) }, authorize).await?;
-    Ok(json!({"ok":true,"mode":settings.mode}))
+    Ok(json!({"ok":true,"mode":settings.mode,"backend_status":state.backend_status()}))
 }
 
 async fn prepare_configuration(

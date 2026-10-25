@@ -1,16 +1,24 @@
-use super::{client::EngineClient, Engine};
+use super::{backend_status::BackendStatus, client::EngineClient, Engine};
 use crate::{
     error::{Error, Result},
     types::Settings,
 };
 use serde_json::{json, Value};
-use std::{path::Path, sync::Mutex, time::Duration};
+use std::{
+    path::Path,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    time::Duration,
+};
 use tokio_util::sync::CancellationToken;
 
 /// Owns resident processes; configuration readiness belongs to the application runtime.
 #[derive(Default)]
 pub(crate) struct EngineManager {
     engine: Mutex<Option<Engine>>,
+    has_started: AtomicBool,
 }
 
 impl EngineManager {
@@ -39,11 +47,26 @@ impl EngineManager {
         }
         let client = started.client.clone();
         *engine = Some(started);
+        self.has_started.store(true, Ordering::Relaxed);
         Ok(client)
     }
 
     pub fn stop(&self) {
         self.engine.lock().unwrap().take();
+    }
+
+    pub fn backend_status(&self) -> BackendStatus {
+        let mut owned = self.engine.lock().unwrap();
+        match owned.as_mut() {
+            Some(engine) => {
+                if engine.alive() {
+                    engine.backend.status()
+                } else {
+                    BackendStatus::inactive(true)
+                }
+            }
+            None => BackendStatus::inactive(self.has_started.load(Ordering::Relaxed)),
+        }
     }
 
     pub fn apply_settings(&self, before: &Settings, after: &Settings) {
@@ -66,7 +89,7 @@ impl EngineManager {
             match engine.as_mut() {
                 Some(engine) => {
                     if !engine.alive() {
-                        return json!({"ok":false,"error":"Model engine stopped unexpectedly"});
+                        return json!({"ok":false,"error":"Model engine stopped unexpectedly","backend_status":BackendStatus::inactive(true)});
                     }
                     Some(engine.client.clone())
                 }
@@ -74,7 +97,7 @@ impl EngineManager {
             }
         };
         let Some(client) = client else {
-            return json!({"ok":ready,"idle":ready,"error":if ready { None } else { Some("Complete model setup first") }});
+            return json!({"ok":ready,"idle":ready,"error":if ready { None } else { Some("Complete model setup first") },"backend_status":self.backend_status()});
         };
         let synth = client
             .http
@@ -98,7 +121,7 @@ impl EngineManager {
             Ok(response) => response.json::<Value>().await.ok(),
             Err(_) => None,
         };
-        json!({"ok":synth.is_ok_and(|r| r.status().is_success()) && lm.is_ok_and(|r| r.status().is_success()),"props":props})
+        json!({"ok":synth.is_ok_and(|r| r.status().is_success()) && lm.is_ok_and(|r| r.status().is_success()),"props":props,"backend_status":self.backend_status()})
     }
 }
 
@@ -113,7 +136,14 @@ mod tests {
             engine: Mutex::new(Some(Engine {
                 processes: Vec::new(),
                 client,
+                backend: super::super::backend_status::BackendSession::new(
+                    super::super::backend_status::BackendLog::capture(Path::new("synthesis.log")),
+                    None,
+                    None,
+                    false,
+                ),
             })),
+            has_started: AtomicBool::new(true),
         }
     }
     #[test]
@@ -133,13 +163,59 @@ mod tests {
             Some(Path::new("synthesis.log"))
         );
     }
-    #[test]
-    fn changing_the_device_releases_the_old_engine() {
+    #[tokio::test]
+    async fn changing_the_device_clears_the_old_backend_from_health() {
         let manager = resident();
         let before = Settings::default();
         let mut after = before.clone();
         after.lm_device = "cpu".into();
         manager.apply_settings(&before, &after);
-        assert!(manager.engine.lock().unwrap().is_none());
+        let health = manager.health(true).await;
+        assert_eq!(health["backend_status"]["state"], "stopped");
+        assert_eq!(health["backend_status"]["synthesis"]["backend"], "unknown");
+    }
+
+    #[tokio::test]
+    async fn healthy_servers_do_not_confirm_a_backend_until_models_execute() {
+        use crate::engine::backend_status::{BackendLog, BackendSession};
+        use axum::{routing::get, Json, Router};
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("engine.log");
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let app = Router::new()
+            .route("/health", get(|| async { Json(json!({"status":"ok"})) }))
+            .route("/props", get(|| async { Json(json!({"models":{}})) }));
+        let task = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let manager = resident();
+        {
+            let mut engine = manager.engine.lock().unwrap();
+            let engine = engine.as_mut().unwrap();
+            engine.client.synth = url.clone();
+            engine.client.lm = url;
+            engine.backend = BackendSession::new(BackendLog::capture(&path), None, None, false);
+        }
+        let health = manager.health(true).await;
+        assert_eq!(health["ok"], true);
+        assert_eq!(
+            health["backend_status"]["language_model"]["state"],
+            "unconfirmed"
+        );
+        std::fs::write(&path, "[Load] LM backend: CUDA0 (CPU threads: 4)\n").unwrap();
+        let health = manager.health(true).await;
+        assert_eq!(
+            health["backend_status"]["language_model"]["backend"],
+            "cuda"
+        );
+        assert_eq!(
+            health["backend_status"]["synthesis"]["state"],
+            "unconfirmed"
+        );
+        manager.stop();
+        assert_eq!(
+            manager.health(true).await["backend_status"]["state"],
+            "stopped"
+        );
+        task.abort();
     }
 }

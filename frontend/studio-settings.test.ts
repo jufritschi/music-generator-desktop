@@ -57,7 +57,7 @@ beforeEach(async () => {
     }
   }
   removeListeners = trackListeners();
-  settings = { expert_mode: false, timeout_minutes: 30, songs_dir: "/songs", songs_dir_default: "/songs", lm_device: "auto", export_format: "wav", mp3_available: false } as Settings;
+  settings = { expert_mode: false, cpu_iteration_behavior: "ask", timeout_minutes: 30, songs_dir: "/songs", songs_dir_default: "/songs", lm_device: "auto", export_format: "wav", mp3_available: false } as Settings;
   mocks.save.mockImplementation(async (values: SettingsPatch) => { settings = { ...settings, ...values }; return settings; });
   const songs = ["done", "error"].map(status => ({ id: status, status, title: status, caption: "saved song", lyrics: "[Instrumental]", params: { prompt: "saved song", duration: 45 }, seed: 42, result_meta: null } as Song));
   mocks.invoke.mockImplementation(async (name: string, args?: { values?: SettingsPatch }) => {
@@ -65,6 +65,7 @@ beforeEach(async () => {
       case "get_settings": return { ...settings };
       case "save_settings": return mocks.save(args!.values);
       case "health": return { ok: true };
+      case "generation_policy": return { backend: "gpu", cpu_iteration_behavior: settings.cpu_iteration_behavior, recommended_steps: 80, defaults: { duration: 90, bpm: 0, inference_steps: 80, lm_temperature: 1.2, variants: 2 } };
       case "list_folders": return { folders: [], all: 2, none: 2 };
       case "list_songs": return songs;
       case "queue": return { running: [], library: null };

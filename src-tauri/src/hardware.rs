@@ -1,6 +1,8 @@
 use serde::Serialize;
 use std::{process::Command, sync::OnceLock};
 use sysinfo::{MemoryRefreshKind, System};
+mod cuda;
+pub use cuda::{CudaCompatibility, NvidiaGpu};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Hardware {
@@ -11,6 +13,8 @@ pub struct Hardware {
     pub vae_chunk: Option<u32>,
     pub platform: &'static str,
     pub cpu_only: bool,
+    pub nvidia: Option<NvidiaGpu>,
+    pub cuda: Option<CudaCompatibility>,
 }
 
 pub fn cpu_only_target(os: &str, arch: &str) -> bool {
@@ -77,7 +81,7 @@ fn detect() -> Hardware {
     let mut sys = System::new();
     sys.refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());
     let ram = sys.total_memory();
-    let (gpu, vram) = adapter();
+    let (gpu, vram, nvidia) = adapter();
     let (lm, chunk) = recommend(ram, vram);
     Hardware {
         ram_bytes: ram,
@@ -87,6 +91,15 @@ fn detect() -> Hardware {
         vae_chunk: chunk,
         platform: std::env::consts::OS,
         cpu_only: cpu_only(),
+        cuda: if cfg!(windows) {
+            CudaCompatibility::for_engine(
+                &crate::manifest::manifest().engines["windows"],
+                nvidia.as_ref(),
+            )
+        } else {
+            None
+        },
+        nvidia,
     }
 }
 
@@ -97,31 +110,32 @@ fn output(program: &str, args: &[&str]) -> Option<String> {
     )
 }
 
-fn adapter() -> (String, Option<u64>) {
+fn adapter() -> (String, Option<u64>, Option<NvidiaGpu>) {
     if cfg!(target_os = "macos") {
         let chip = output("/usr/sbin/sysctl", &["-n", "machdep.cpu.brand_string"])
             .unwrap_or_else(|| std::env::consts::ARCH.into());
-        return (
-            format!(
-                "{chip} · {}",
-                if cpu_only() { "CPU" } else { "Metal / CPU" }
-            ),
-            None,
-        );
+        return (chip, None, None);
     }
-    if let Some(text) = output(
+    let nvidia = output(
         "nvidia-smi",
         &[
-            "--query-gpu=name,memory.total",
+            "--query-gpu=name,memory.total,compute_cap,driver_version",
             "--format=csv,noheader,nounits",
         ],
-    ) {
-        if let Some((name, memory)) = text.lines().next().and_then(|l| l.rsplit_once(',')) {
-            return (
-                format!("{} · CUDA / Vulkan / CPU", name.trim()),
-                memory.trim().parse::<u64>().ok().map(|m| m * 1024 * 1024),
-            );
-        }
+    )
+    .and_then(|text| cuda::adapter(&text))
+    .or_else(|| {
+        output(
+            "nvidia-smi",
+            &[
+                "--query-gpu=name,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+        )
+        .and_then(|text| cuda::adapter(&text))
+    });
+    if let Some(adapter) = nvidia {
+        return adapter;
     }
     #[cfg(windows)]
     {
@@ -134,7 +148,7 @@ fn adapter() -> (String, Option<u64>) {
                 "(Get-CimInstance Win32_VideoController).Name -join ', '",
             ],
         ) {
-            return (format!("{name} · Vulkan / CPU"), None);
+            return (name.trim().into(), None, None);
         }
     }
     #[cfg(target_os = "linux")]
@@ -144,12 +158,12 @@ fn adapter() -> (String, Option<u64>) {
                 if let Ok(bytes) =
                     std::fs::read_to_string(entry.path().join("device/mem_info_vram_total"))
                 {
-                    return ("AMD · Vulkan / CPU".into(), bytes.trim().parse().ok());
+                    return ("AMD".into(), bytes.trim().parse().ok(), None);
                 }
             }
         }
     }
-    ("Vulkan if available; CPU fallback".into(), None)
+    (std::env::consts::ARCH.into(), None, None)
 }
 
 #[cfg(test)]

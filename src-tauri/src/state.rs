@@ -84,6 +84,9 @@ impl AppState {
     pub async fn health(&self) -> serde_json::Value {
         self.engine.health(self.runtime.is_ready()).await
     }
+    pub fn backend_status(&self) -> crate::engine::backend_status::BackendStatus {
+        self.engine.backend_status()
+    }
     pub fn begin_shutdown(&self) {
         self.runtime.shutdown();
     }
