@@ -157,7 +157,11 @@ unsafe fn detect(
     let name = base.get::<unsafe extern "C" fn(Handle) -> *const c_char>(b"ggml_backend_name\0")?;
     let free = base.get::<unsafe extern "C" fn(Handle)>(b"ggml_backend_free\0")?;
     let path = CString::new(folder.to_string_lossy().as_bytes())?;
-    load(path.as_ptr());
+    if force_cpu {
+        load_cpu_backend(folder, &library)?;
+    } else {
+        load(path.as_ptr());
+    }
     // Older Unix engines honor GGML_BACKEND; the pinned Windows engine uses --device.
     let forced = if force_cpu {
         Some("CPU".to_owned())
@@ -184,6 +188,63 @@ unsafe fn detect(
     };
     free(backend);
     Ok(result)
+}
+
+/// Match GGML's CPU-variant scoring without initializing unrelated GPU drivers.
+/// Used only by the explicit --cpu package check; automatic selection loads all backends.
+unsafe fn load_cpu_backend(
+    folder: &Path,
+    registry: &libloading::Library,
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    use std::ffi::{c_char, c_void, CString};
+    let prefix = if cfg!(windows) {
+        "ggml-cpu"
+    } else {
+        "libggml-cpu"
+    };
+    // GGML backend modules use .so even on macOS.
+    let extension = if cfg!(windows) { "dll" } else { "so" };
+    let mut best = None;
+    let mut best_score = 0;
+    let mut fallback = None;
+    for entry in std::fs::read_dir(folder)? {
+        let path = entry?.path();
+        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if path.extension().and_then(|s| s.to_str()) != Some(extension) {
+            continue;
+        }
+        if stem == prefix {
+            fallback = Some(path);
+            continue;
+        }
+        if !stem.starts_with(&format!("{prefix}-")) {
+            continue;
+        }
+        // These are the pinned runtime's CPU variants, scored just as load_best does.
+        if let Ok(candidate) = libloading::Library::new(&path) {
+            if let Ok(score) =
+                candidate.get::<unsafe extern "C" fn() -> i32>(b"ggml_backend_score\0")
+            {
+                let score = score();
+                if score > best_score {
+                    best_score = score;
+                    best = Some(path);
+                }
+            }
+        }
+    }
+    let path = best
+        .or(fallback)
+        .ok_or("No compatible CPU backend module")?;
+    let path = CString::new(path.to_string_lossy().as_bytes())?;
+    let load = registry
+        .get::<unsafe extern "C" fn(*const c_char) -> *mut c_void>(b"ggml_backend_load\0")?;
+    if load(path.as_ptr()).is_null() {
+        return Err("CPU backend module could not be loaded".into());
+    }
+    Ok(())
 }
 
 #[cfg(test)]

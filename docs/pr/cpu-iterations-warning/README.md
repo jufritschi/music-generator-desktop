@@ -26,7 +26,8 @@ not a hardware reservation or a runtime estimate.
 - Native helper initialized CPU using the existing macOS arm64 engine at
   source revision `b7ba6d9ce2f19ca7627fb8f340032c3ebe8ae253`, without model weights.
 - Portable-bundle verification now initializes CPU through the new helper in
-  each relocated package. CI links and outcomes are recorded in the PR.
+  each relocated package. The explicit CPU check loads only a compatible CPU
+  module, using GGML variant scoring, without initializing optional GPU drivers. CI links and outcomes are recorded in the PR.
 
 ## Performance and listening acceptance still required
 
