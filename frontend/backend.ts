@@ -1,5 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import type { Bootstrap, Filter, Folder, Generation, Health, Queue, Settings, SetupRequest, Song, Update, ModelCatalog, ModelSelection } from "./types";
+import type { Bootstrap, Filter, Folder, Generation, Health, Queue, Settings, SettingsPatch, SetupRequest, Song, Update, ModelCatalog, ModelSelection } from "./types";
 
 async function command<T>(name: string, args?: Record<string, unknown>): Promise<T> {
   try { return await invoke<T>(name, args); }
@@ -15,6 +15,7 @@ export const backend = {
   cancelSetup: () => command<void>("cancel_setup"),
   modelCatalog: () => command<ModelCatalog>("model_catalog"),
   downloadTitleModel: () => command<void>("download_title_model"),
+  selectModels: (selection: ModelSelection) => command<ModelSelection>("select_models", { selection }),
   useModels: (selection: ModelSelection) => command<ModelSelection>("use_models", { selection }),
   cancelModelDownload: () => command<void>("cancel_model_download"),
   importLibrary: (root: string) => command<{ songs: number; models_dir: string }>("import_library", { root }),
@@ -29,7 +30,7 @@ export const backend = {
   deleteFolder: (id: string) => command<void>("delete_folder", { id }),
   queue: () => command<Queue>("queue"),
   settings: () => command<Settings>("get_settings"),
-  saveSettings: (values: Pick<Settings, "timeout_minutes" | "songs_dir"> & Partial<Pick<Settings, "lm_device" | "export_format">>) => command<Settings>("save_settings", { values }),
+  saveSettings: (values: SettingsPatch) => command<Settings>("save_settings", { values }),
   health: () => command<Health>("health"),
   analyze: async (file: File, selection?: ModelSelection) => {
     if (file.size > 60 * 1024 * 1024) throw new Error("Audio files must be smaller than 60 MB");

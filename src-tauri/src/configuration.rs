@@ -17,6 +17,12 @@ pub async fn save(
     values: SettingsPatch,
     authorize: impl FnOnce(&Path) -> Result<()>,
 ) -> Result<Settings> {
+    if values.expert_only() {
+        return state.runtime.update_preferences(|| {
+            state.db.set_expert_mode(values.expert_mode.unwrap())?;
+            state.db.settings()
+        });
+    }
     let change = Change::begin(state.clone(), OperationKind::Settings)?;
     let settings = values.apply(state.db.settings()?, &state.db.root, &state.resources)?;
     change.commit(async { Ok(settings) }, authorize).await
@@ -35,9 +41,6 @@ impl Change {
             OperationKind::Setup | OperationKind::Settings
         ));
         let operation = state.runtime.try_begin(kind)?;
-        if kind == OperationKind::Setup {
-            state.stop_engine();
-        }
         Ok(Self {
             state,
             operation,

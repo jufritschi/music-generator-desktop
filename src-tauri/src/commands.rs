@@ -39,7 +39,7 @@ pub async fn bootstrap(state: Desktop<'_>, app: AppHandle) -> Result<Value> {
         "Startup setup check finished"
     );
     Ok(
-        json!({"needs_setup":needs_setup,"settings":settings,"hardware":hardware,"manifest":crate::manifest::manifest(),"title_model":crate::titles::manifest().model,"error":null,"version":env!("CARGO_PKG_VERSION"),"data_dir":state.db.root}),
+        json!({"needs_setup":needs_setup,"recommended_profiles":crate::catalog::catalog().recommended_profiles(&hardware),"settings":settings,"hardware":hardware,"manifest":crate::manifest::manifest(),"title_model":crate::titles::manifest().model,"error":null,"version":env!("CARGO_PKG_VERSION"),"data_dir":state.db.root}),
     )
 }
 
@@ -66,7 +66,8 @@ pub async fn setup_models(
 }
 
 #[tauri::command]
-pub fn setup_estimate(request: crate::setup::SetupRequest) -> Result<Value> {
+pub fn setup_estimate(state: Desktop<'_>, request: crate::setup::SetupRequest) -> Result<Value> {
+    crate::setup::validate_selection(&request, &state.db.settings()?, &crate::hardware::inspect())?;
     let models = crate::setup::plan(&request)?;
     let root = PathBuf::from(&request.models_dir);
     if !root.is_absolute() {
@@ -121,25 +122,8 @@ pub fn get_song(state: Desktop<'_>, id: String) -> Result<Song> {
 }
 
 #[tauri::command]
-pub fn generate(state: Desktop<'_>, app: AppHandle, mut request: GenerateRequest) -> Result<Value> {
-    let ids = state.runtime.enqueue(|| {
-        let settings = state.db.settings()?;
-        let selection = request
-            .model_selection
-            .clone()
-            .unwrap_or_else(|| crate::catalog::Selection::from_settings(&settings));
-        if !crate::catalog::cached(
-            &selection,
-            std::path::Path::new(&settings.models_dir),
-            &crate::verification::ModelVerifier::open(&state.db.root),
-        )? {
-            return Err(message(
-                "Open the ModelPicker and download or verify the selected models first",
-            ));
-        }
-        request.model_selection = Some(selection);
-        state.db.enqueue(&request)
-    })?;
+pub fn generate(state: Desktop<'_>, app: AppHandle, request: GenerateRequest) -> Result<Value> {
+    let ids = crate::admission::generate(&state, request)?;
     state.changed(&app);
     Ok(json!({"ids":ids}))
 }
@@ -163,7 +147,7 @@ pub fn delete_song(state: Desktop<'_>, app: AppHandle, id: String) -> Result<Val
 
 #[tauri::command]
 pub fn retry_song(state: Desktop<'_>, app: AppHandle, id: String) -> Result<Song> {
-    state.runtime.enqueue(|| state.db.retry(&id))?;
+    crate::admission::retry(&state, &id)?;
     state.changed(&app);
     state.db.song(&id)
 }
@@ -206,7 +190,10 @@ pub fn get_settings(state: Desktop<'_>) -> Result<Value> {
     let mut result = serde_json::to_value(&settings)?;
     result["songs_dir_default"] = json!(state.db.root.join("songs"));
     result["mp3_available"] = json!(crate::audio_export::codec_path(&state.resources).is_file());
-    result["cpu_only"] = json!(crate::hardware::cpu_only());
+    let hardware = crate::hardware::inspect();
+    result["cpu_only"] = json!(hardware.cpu_only);
+    result["recommended_profiles"] =
+        json!(crate::catalog::catalog().recommended_profiles(&hardware));
     result["dit_xl_available"] = json!(PathBuf::from(settings.models_dir)
         .join("acestep-v15-xl-sft-Q8_0.gguf")
         .is_file());
@@ -223,6 +210,7 @@ pub async fn save_settings(
         authorize_songs(&app, songs)
     })
     .await?;
+    let _ = app.emit("settings-changed", ());
     state.changed(&app);
     Ok(settings)
 }
@@ -252,10 +240,7 @@ pub async fn analyze(
     if !state.runtime.is_ready() {
         return Err(message("Complete model setup first"));
     }
-    let mut settings = state.db.settings()?;
-    if let Some(selection) = selection {
-        selection.apply(&mut settings)?;
-    }
+    let settings = crate::admission::analysis_settings(&state, selection)?;
     let cancel = operation.cancellation();
     let engine = state.start_engine(&operation, &settings).await?;
     let _awake = crate::power::KeepAwake::new();

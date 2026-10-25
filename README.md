@@ -39,7 +39,7 @@ Die ersten Bundles sind unsignierte Testausgaben. Betriebssystem-Warnungen sind 
 - Songlänge von 10 Sekunden bis 10 Minuten; oberhalb von fünf Minuten Hinweise auf hohen Zeit- und Speicherbedarf. Lange Songs sind auf Intel-Macs und Rechnern mit 8 GB noch nicht praktisch geprüft.
 - Sprachmodell wahlweise automatisch oder nur auf CPU; die Synthese kann weiterhin die Grafikkarte nutzen.
 - **Automatische Songtitel:** Titel leer lassen; ein kleines gemeinsames lokales Textmodell benennt den fertigen Song für ACE-Step. Lyrics und deren Sprache haben Vorrang vor dem Prompt. Rund 640 MB zusätzlicher Download im Assistenten oder ModelPicker; danach offline. Eigene Titel und vorhandene Songs bleiben erhalten.
-- **Modelle wählen:** Klang- und Sprachmodell direkt im Studio auswählen, prüfen und herunterladen. Der versionierte ACE-Step-Katalog umfasst Standard-/XL-Modelle und mehrere Quantisierungen sowie Sprachmodelle mit 0.6B, 1.7B und 4B Parametern. Fortsetzbare Downloads werden per SHA-256 geprüft; der RAM-Filter hilft bei der Auswahl. Details: [Modellauswahl](docs/model-picker.md).
+- **Modelle wählen:** Direkt in der Creator-Ansicht bietet ein Drop-down die Hardware-Empfehlungen für Standard und, bei ausreichendem RAM, XL. Bereits geprüfte lokale Modelle lassen sich dort ohne Download wechseln. Erweiterte Auswahl, Prüfung und Downloads stehen unter Zahnrad › **Modelle verwalten und herunterladen** bereit. Das passende Sprachmodell wird automatisch zugeordnet. Unter Zahnrad › **Expert Mode** lässt sich der vollständige Katalog mit weiteren Familien, Turbo-Modellen, Sprachmodellgrößen und Quantisierungen freischalten. Die Einstellung ist standardmäßig aus, wird gespeichert und wirkt ohne Neustart. Fortsetzbare Downloads werden per SHA-256 geprüft. Details: [Modellauswahl](docs/model-picker.md).
 - Übernahme einer alten Installation; Originaldaten bleiben erhalten.
 - Modelle und Songs außerhalb der App, mit wählbaren Speicherorten. Updates durch Austausch des Bundles.
 - macOS App Sandbox mit gespeicherten Ordnerfreigaben und vererbter Sandbox für die Engine.
@@ -48,10 +48,12 @@ Die ersten Bundles sind unsignierte Testausgaben. Betriebssystem-Warnungen sind 
 
 1. Das passende Bundle herunterladen, entpacken und öffnen. Unter Windows EXE, `engine` und `WebView2` zusammenlassen. Unter Linux die AppImage zunächst ausführbar machen. Einzelheiten stehen in der [Desktop-Anleitung](docs/desktop.md#start).
 2. Im Startassistenten Sprache, Modell- und Song-Ordner sowie ein Modellprofil auswählen. Optional eine bestehende Bibliothek importieren. Downloads und Prüfungen abschließen; spätere Starts öffnen das Studio direkt, die Engine startet bei Bedarf.
-3. Über **Modelle wählen** die aktive Kombination kontrollieren. Im Screenshot sind SFT Q8_0 und das 4B-Sprachmodell Q8_0 ausgewählt; die passende Kombination hängt vom verfügbaren Speicher ab.
+3. Im Modell-Drop-down der Creator-Ansicht zwischen den empfohlenen Standard-/XL-Profilen wählen; XL erscheint nur bei ausreichendem RAM für die gesamte Kombination. Das empfohlene Sprachmodell steht fest. Der vollständige Katalog ist im **Expert Mode** verfügbar. Im Screenshot sind SFT Q8_0 und das 4B-Sprachmodell Q8_0 ausgewählt.
 4. **Prompt und Stil** eingeben, zum Beispiel „nächtliche Autofahrt durch eine Neonstadt, langsam und hypnotisch“ und „trip hop, dark, dub bass“. Die Würfel liefern Vorschläge. Einen eigenen Titel eingeben oder das Feld für einen automatisch erzeugten Titel leer lassen.
 5. **Länge, BPM und Lyrics** festlegen. Standard ist Instrumental; im Lyrics-Bereich eigenen Text eingeben oder automatische Lyrics aktivieren. Unter **Erweitert** stehen unter anderem Iterationen, Varianz, Tonart, Takt und Seed bereit.
 6. **Versionen** auswählen und **Generieren** drücken. Die Warteschlange verarbeitet die Songs nacheinander und zeigt die Berechnungsphasen an.
+
+Beim Ausschalten des Expert Mode bleibt eine zuvor aktive erweiterte Modellauswahl erhalten. Neue Aufträge und Wiederholungen damit benötigen den Expert Mode oder eine ausdrücklich übernommene Hardware-Empfehlung. Es gibt keinen stillen Modellwechsel oder automatischen Download beim Umschalten. Bereits angenommene Aufträge werden fertiggestellt, auch nach einem Neustart. Heruntergeladene Modelle, vorhandene Songs, Wiedergabe und Export bleiben erhalten.
 
 ## Bibliothek, Vorlagen und Export
 

@@ -1,3 +1,4 @@
+import { modelErrorText, modelLabel } from "./expert-mode";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { backend } from "./backend";
@@ -27,10 +28,10 @@ export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Pr
         <label class="field"><span class="lbl" data-i18n="desktop_models_folder"></span><div class="path-picker"><input id="setupModels" required><button type="button" class="sek" data-setup-pick="setupModels" data-i18n="desktop_browse"></button></div></label>
         <label class="field"><span class="lbl" data-i18n="songs_dir"></span><div class="path-picker"><input id="setupSongs" required><button type="button" class="sek" data-setup-pick="setupSongs" data-i18n="desktop_browse"></button></div></label>
         <label class="field"><span class="lbl" data-i18n="desktop_language_model"></span><select id="setupLm"><option>0.6B</option><option>1.7B</option><option>4B</option></select><span class="small" id="lmRecommendation"></span></label>
-        <label class="check-row"><input type="checkbox" id="setupXl"><span data-i18n="desktop_xl"></span></label>
+        <label class="check-row" id="setupXlField"><input type="checkbox" id="setupXl"><span data-i18n="desktop_xl"></span></label>
         <div id="modelList" class="model-list"></div>
         <p id="spaceEstimate" class="small" aria-live="polite"></p>
-        <button class="aktion big" type="submit" data-i18n="desktop_start"></button>
+        <button class="aktion big" id="setupStart" type="submit" data-i18n="desktop_start"></button>
       </fieldset></form>
       <div id="setupProgressArea" hidden><progress id="setupProgress" max="1" aria-label="Download"></progress><p id="setupProgressText" role="status" aria-live="polite"></p><button class="sek" id="cancelSetup" data-i18n="cancel"></button></div>
       <p id="setupError" role="alert" class="setup-error"></p>
@@ -72,7 +73,9 @@ export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Pr
   element<HTMLInputElement>("#setupModels").value = data.settings.models_dir;
   element<HTMLInputElement>("#setupSongs").value = data.settings.songs_dir;
   element<HTMLSelectElement>("#setupLm").value = ["0.6B", "1.7B", "4B"].find((size) => data.settings.lm_model.includes(`-${size}-`)) || data.hardware.recommended_lm;
-  element<HTMLInputElement>("#setupXl").checked = data.settings.dit === "xl" || Boolean(data.settings.dit_xl_available);
+  const canUseXl = data.settings.expert_mode || data.recommended_profiles.some(p => p.synthesis.includes("-xl-"));
+  element("#setupXlField").hidden = !canUseXl;
+  element<HTMLInputElement>("#setupXl").checked = canUseXl && (data.settings.dit === "xl" || Boolean(data.settings.dit_xl_available));
   element("#setupBack").hidden = data.needs_setup;
   element("#hardwareInfo").textContent = `${bytes(data.hardware.ram_bytes)} RAM · ${data.hardware.gpu}${data.hardware.vram_bytes ? ` · ${bytes(data.hardware.vram_bytes)} VRAM` : ""}`;
   element("#intelCpuHint").hidden = !data.hardware.cpu_only;
@@ -82,15 +85,32 @@ export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Pr
 
 let estimateSequence = 0;
 async function updateEstimate(): Promise<void> {
-  const sequence = ++estimateSequence; const selection = request();
+  const sequence = ++estimateSequence;
+  const lm = element<HTMLSelectElement>("#setupLm");
+  if (!configuration.settings.expert_mode) {
+    const xl = element<HTMLInputElement>("#setupXl").checked;
+    const recommendation = configuration.recommended_profiles.find(p => p.synthesis.includes("-xl-") === xl);
+    const size = recommendation ? modelLabel(recommendation.language, false) : configuration.hardware.recommended_lm;
+    lm.replaceChildren(new Option(size, size));
+    lm.disabled = true;
+  } else {
+    const previous = lm.value;
+    lm.replaceChildren(...["0.6B", "1.7B", "4B"].map(size => new Option(size, size)));
+    lm.value = previous;
+    lm.disabled = false;
+  }
+  const selection = request();
+  const unsupported = !configuration.settings.expert_mode && !configuration.recommended_profiles.length;
+  element<HTMLButtonElement>("#setupStart").disabled = unsupported;
   element("#lmRecommendation").textContent = `${t("desktop_recommended")}: ${configuration.hardware.recommended_lm}`;
   const models: {file:string;estimated_bytes:number}[] = configuration.manifest.models.filter((m) => m.kind === "required" || m.kind === selection.lm || (m.kind === "xl" && selection.xl));
   models.push(configuration.title_model);
   element("#modelList").replaceChildren(...models.map((model) => { const row = document.createElement("div"); row.textContent = `${model.file} · ~${bytes(model.estimated_bytes)}`; return row; }));
+  if (unsupported) { element("#spaceEstimate").textContent = t("expert_no_recommendation"); return; }
   try {
     const estimate = await backend.estimate(selection); if (sequence !== estimateSequence) return;
     element("#spaceEstimate").textContent = `${t("desktop_space")}: ~${bytes(estimate.missing_bytes)} / ${bytes(estimate.free_bytes)}`;
-  } catch (error) { if (sequence === estimateSequence) element("#spaceEstimate").textContent = String(error); }
+  } catch (error) { if (sequence === estimateSequence) element("#spaceEstimate").textContent = modelErrorText(error, t); }
 }
 
 function setBusy(busy: boolean): void {
@@ -100,7 +120,7 @@ function setBusy(busy: boolean): void {
   document.body.dataset.settingUp = String(busy);
 }
 
-function showError(error: unknown): void { element("#setupError").textContent = error instanceof Error ? error.message : String(error); }
+function showError(error: unknown): void { element("#setupError").textContent = modelErrorText(error, t); }
 
 async function configure(): Promise<void> {
   setBusy(true); element("#setupError").textContent = "";

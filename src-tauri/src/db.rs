@@ -70,6 +70,15 @@ impl Database {
         Ok(settings)
     }
 
+    /// Update only this preference; callers serialize admission with configuration writers.
+    pub fn set_expert_mode(&self, enabled: bool) -> Result<()> {
+        self.lock().execute(
+            "INSERT INTO settings(key,value) VALUES('expert_mode',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [if enabled { "true" } else { "false" }],
+        )?;
+        Ok(())
+    }
+
     pub fn save_settings(&self, settings: &Settings) -> Result<()> {
         let mut con = self.lock();
         let tx = con.transaction()?;

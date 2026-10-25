@@ -1,8 +1,9 @@
 import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
 import { extractStyleTags } from "./style-tags";
 import { measureMelody, describeIdea, toWav } from "./melody";
+import { modelErrorText, settingsChanges } from "./expert-mode";
 import { backend } from "./backend";
-import { generationModels, restoreSongModels } from "./model-picker";
+import { generationModels, restoreSongModels, generationModelAllowed } from "./model-picker";
 import { t, LANG, setLang } from "./i18n.js";
 import { exportSong, exportFolder } from "./exports";
 import { samplingForSong } from "./song-sampling";
@@ -149,13 +150,14 @@ form.addEventListener("submit", async (e) => {
   if (!form.prompt.value.trim() && !form.style.value.trim()) { form.prompt.focus(); return; }
   const btn = $("#genBtn");
   if (btn.disabled) return;
+  if (!generationModelAllowed()) { alert(t("expert_mode_required")); return; }
   btn.classList.remove("fired"); void btn.offsetWidth; btn.classList.add("fired");   // Animation auch bei Enter/Alt+G
   btn.disabled = true;
   try {
     const r = await backend.generate(readForm());
     announce(t("an_queued", r.ids.length));
     refresh();
-  } catch (err) { alert(t("error") + ": " + err.message); }
+  } catch (err) { alert(t("error") + ": " + modelErrorText(err, t)); }
   setTimeout(() => { btn.disabled = false; }, 600);
 });
 form.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault(); });
@@ -239,7 +241,7 @@ async function analyzeFile(file, idea = null) {   // idea = Messwerte einer Mikr
     dzState("ok", idea ? t("idea_ready") : t("analyzed", file.name));
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
-    dzState("err", `${t("error")}: ${err.message}`);
+    dzState("err", `${t("error")}: ${modelErrorText(err, t)}`);
   }
 }
 dz.addEventListener("click", () => fileInput.click());
@@ -298,7 +300,7 @@ async function recFinish() {
     const { wav, mono, rate } = await toWav(new Blob(chunks, { type: mr.mimeType }));
     const idea = measureMelody(mono, rate) || { range: 5, rate: 2.5, drift: 0, legato: 0.8 };   // nichts Tonales gefunden: neutrale Werte
     await analyzeFile(new File([wav], t("rec_name"), { type: "audio/wav" }), idea);   // Name ohne Endung: so steht er in der Meldung
-  } catch (err) { dzState("err", `${t("error")}: ${err.message}`); }
+  } catch (err) { dzState("err", `${t("error")}: ${modelErrorText(err, t)}`); }
   recBtn.classList.remove("busy");
 }
 // Browser-Aufnahme (webm/mp4) in Mono-WAV 16 Bit umwandeln; leise Mikrofone werden auf -1 dB angehoben
@@ -464,17 +466,21 @@ $("#library").addEventListener("click", async (e) => {
   if (a === "reuse") return fillForm(s);
   if (a === "move") return moveMenu(btn, id);
   if (a === "lyrics") { openLyrics.has(id) ? openLyrics.delete(id) : openLyrics.add(id); return render(); }
-  if (a === "retry") await backend.retry(id);
+  if (a === "retry") {
+    try { await backend.retry(id); } catch (error) { alert(modelErrorText(error, t)); }
+  }
   if (a === "more") {
     const p = s.params;
-    await backend.generate({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id, folder_id: s.folder_id });
+    try {
+      await backend.generate({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id, folder_id: s.folder_id });
+    } catch (error) { alert(modelErrorText(error, t)); }
   }
   if (a === "del") {
     // Löschen in zwei Klicks: erster Klick macht aus ✕ ein ?, zweiter Klick auf dieselbe Stelle löscht.
     // Abbrechen laufender oder wartender Songs geht weiter mit einem Klick.
     if (!["queued", "running"].includes(s.status) && armedKey !== `song:${id}`) { arm(`song:${id}`); return; }
     disarm(false);
-    await backend.remove(id).catch((err) => alert(err.message));
+    await backend.remove(id).catch((err) => alert(modelErrorText(err, t)));
   }
   refresh();
 });
@@ -542,7 +548,7 @@ $("#folderBar").addEventListener("click", async (e) => {
       disarm(false);
       await backend.deleteFolder(cur.id); setFolder("");
     } else if (a === "zip") { await exportFolder(curFolder); }
-  } catch (err) { alert(t("error") + ": " + err.message); }
+  } catch (err) { alert(t("error") + ": " + modelErrorText(err, t)); }
 });
 // Song auf einen Ordner ziehen
 // (Text in den Lyrics soll markierbar bleiben, Knöpfe sollen klicken statt ziehen)
@@ -682,16 +688,26 @@ async function checkHealth() {
   } catch { el.className = "box small err"; el.textContent = t("backend_offline"); }
 }
 const dlg = $("#settingsDlg"), sf = $("#settingsForm");
+let settingsBefore;
 $("#btnSettings").onclick = async () => {
   const s = await backend.settings();
+  settingsBefore = s;
+  sf.expert_mode.checked = s.expert_mode;
   for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format"]) sf[k].value = s[k];
   sf.export_format.querySelector("option[value=mp3]").disabled = !s.mp3_available;
   $("#expHint").hidden = s.mp3_available;
   $("#settingsIntelHint").hidden = !s.cpu_only;
   sf.songs_dir.placeholder = s.songs_dir_default;   // Standard als Platzhalter, leer lassen = Standard
+  dlg.returnValue = "";
   dlg.showModal();
 };
-const saveSettings = () => backend.saveSettings({ timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value }).catch((err) => { alert(err.message === "mp3_failed" ? t("mp3_failed") : err.message); $("#btnSettings").click(); });
+const saveSettings = async () => {
+  const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
+  if (!Object.keys(values).length) return;
+  try { await backend.saveSettings(values); }
+  catch (err) { alert(err.message === "mp3_failed" ? t("mp3_failed") : modelErrorText(err, t)); $("#btnSettings").click(); }
+};
+document.addEventListener("open-settings", () => { $("#btnSettings").click(); });
 $("#settingsModelPicker").onclick = () => { dlg.close("cancel"); document.dispatchEvent(new Event("open-model-picker")); };
 // Anordnung: untereinander oder Generator links / Bibliothek rechts
 function setLayout(l) {

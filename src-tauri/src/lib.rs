@@ -1,3 +1,4 @@
+pub mod admission;
 pub mod audio_export;
 pub mod catalog;
 mod commands;
@@ -99,6 +100,7 @@ pub fn run() {
             commands::remember_folder,
             model_commands::model_catalog,
             model_commands::use_models,
+            model_commands::select_models,
             model_commands::download_title_model,
             model_commands::cancel_model_download
         ])
