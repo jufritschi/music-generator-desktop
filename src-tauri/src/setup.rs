@@ -77,7 +77,7 @@ pub async fn configure(
     authorize: impl FnOnce(&Path) -> Result<()>,
 ) -> Result<Value> {
     let change = Change::begin(state.clone(), OperationKind::Setup)?;
-    validate_selection(&request, &state.db.settings()?, &hardware::inspect())?;
+    validate_selection(&request, &state.db.settings()?, hardware::inspect())?;
     state.stop_engine();
     let cancel = change.cancellation();
     let settings = prepare_configuration(

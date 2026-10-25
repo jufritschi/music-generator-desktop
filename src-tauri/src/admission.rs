@@ -9,13 +9,14 @@ use crate::{
 use std::path::Path;
 
 pub fn generate(state: &AppState, mut request: GenerateRequest) -> Result<Vec<String>> {
+    let hardware = crate::hardware::inspect();
     state.runtime.enqueue(|| {
         let settings = state.db.settings()?;
         let selection = request
             .model_selection
             .clone()
             .unwrap_or_else(|| Selection::from_settings(&settings));
-        catalog::ensure_allowed(&selection, settings.expert_mode)?;
+        catalog::catalog().ensure_allowed(&selection, settings.expert_mode, Some(hardware))?;
         if !catalog::cached(
             &selection,
             Path::new(&settings.models_dir),
@@ -31,6 +32,7 @@ pub fn generate(state: &AppState, mut request: GenerateRequest) -> Result<Vec<St
 }
 
 pub fn retry(state: &AppState, id: &str) -> Result<()> {
+    let hardware = crate::hardware::inspect();
     state.runtime.enqueue(|| {
         let settings = state.db.settings()?;
         let song = state.db.song(id)?;
@@ -41,7 +43,7 @@ pub fn retry(state: &AppState, id: &str) -> Result<()> {
             .map(|value| serde_json::from_value(value.clone()))
             .transpose()?
             .unwrap_or_else(|| Selection::from_settings(&settings));
-        catalog::ensure_allowed(&selection, settings.expert_mode)?;
+        catalog::catalog().ensure_allowed(&selection, settings.expert_mode, Some(hardware))?;
         state.db.retry(id)
     })
 }

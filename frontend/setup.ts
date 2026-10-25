@@ -6,15 +6,16 @@ import { bytes, element } from "./dom";
 import { LANG, LANGS, applyI18n, setLang, t } from "./i18n.js";
 import type { Bootstrap, DownloadProgress, SetupRequest } from "./types";
 
+const languageSizes = ["0.6B", "1.7B", "4B"];
 let initialized = false;
 let configuration: Bootstrap;
-let onReady: () => Promise<void>;
+let onReady: (resetSelection?: boolean) => Promise<void>;
 
 function request(): SetupRequest {
   return { lm: element<HTMLSelectElement>("#setupLm").value, xl: element<HTMLInputElement>("#setupXl").checked, models_dir: element<HTMLInputElement>("#setupModels").value.trim(), songs_dir: element<HTMLInputElement>("#setupSongs").value.trim() };
 }
 
-export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Promise<void> {
+export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolean) => Promise<void>): Promise<void> {
   configuration = data; onReady = ready;
   element("#studio").hidden = true; element("#setupScreen").hidden = false;
   element("#bootStatus").textContent = data.error || t("desktop_setup_hint");
@@ -27,7 +28,7 @@ export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Pr
         <section class="import-card"><button type="button" class="sek" id="importLibrary" data-i18n="desktop_import"></button><p class="small" data-i18n="desktop_import_hint"></p><p id="importStatus" role="status"></p></section>
         <label class="field"><span class="lbl" data-i18n="desktop_models_folder"></span><div class="path-picker"><input id="setupModels" required><button type="button" class="sek" data-setup-pick="setupModels" data-i18n="desktop_browse"></button></div></label>
         <label class="field"><span class="lbl" data-i18n="songs_dir"></span><div class="path-picker"><input id="setupSongs" required><button type="button" class="sek" data-setup-pick="setupSongs" data-i18n="desktop_browse"></button></div></label>
-        <label class="field"><span class="lbl" data-i18n="desktop_language_model"></span><select id="setupLm"><option>0.6B</option><option>1.7B</option><option>4B</option></select><span class="small" id="lmRecommendation"></span></label>
+        <label class="field"><span class="lbl" data-i18n="desktop_language_model"></span><select id="setupLm"></select><span class="small" id="lmRecommendation"></span></label>
         <label class="check-row" id="setupXlField"><input type="checkbox" id="setupXl"><span data-i18n="desktop_xl"></span></label>
         <div id="modelList" class="model-list"></div>
         <p id="spaceEstimate" class="small" aria-live="polite"></p>
@@ -72,7 +73,6 @@ export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Pr
   element<HTMLSelectElement>("#setupLanguage").value = LANG;
   element<HTMLInputElement>("#setupModels").value = data.settings.models_dir;
   element<HTMLInputElement>("#setupSongs").value = data.settings.songs_dir;
-  element<HTMLSelectElement>("#setupLm").value = ["0.6B", "1.7B", "4B"].find((size) => data.settings.lm_model.includes(`-${size}-`)) || data.hardware.recommended_lm;
   const canUseXl = data.settings.expert_mode || data.recommended_profiles.some(p => p.synthesis.includes("-xl-"));
   element("#setupXlField").hidden = !canUseXl;
   element<HTMLInputElement>("#setupXl").checked = canUseXl && (data.settings.dit === "xl" || Boolean(data.settings.dit_xl_available));
@@ -80,11 +80,12 @@ export async function showSetup(data: Bootstrap, ready: () => Promise<void>): Pr
   element("#hardwareInfo").textContent = `${bytes(data.hardware.ram_bytes)} RAM · ${data.hardware.gpu}${data.hardware.vram_bytes ? ` · ${bytes(data.hardware.vram_bytes)} VRAM` : ""}`;
   element("#intelCpuHint").hidden = !data.hardware.cpu_only;
   element("#setupError").textContent = "";
-  applyI18n(); await updateEstimate();
+  applyI18n();
+  await updateEstimate(languageSizes.find(size => data.settings.lm_model.includes(`-${size}-`)) || data.hardware.recommended_lm);
 }
 
 let estimateSequence = 0;
-async function updateEstimate(): Promise<void> {
+async function updateEstimate(preferredLanguage?: string): Promise<void> {
   const sequence = ++estimateSequence;
   const lm = element<HTMLSelectElement>("#setupLm");
   if (!configuration.settings.expert_mode) {
@@ -94,9 +95,9 @@ async function updateEstimate(): Promise<void> {
     lm.replaceChildren(new Option(size, size));
     lm.disabled = true;
   } else {
-    const previous = lm.value;
-    lm.replaceChildren(...["0.6B", "1.7B", "4B"].map(size => new Option(size, size)));
-    lm.value = previous;
+    const previous = preferredLanguage || lm.value;
+    lm.replaceChildren(...languageSizes.map(size => new Option(size, size)));
+    lm.value = languageSizes.includes(previous) ? previous : configuration.hardware.recommended_lm;
     lm.disabled = false;
   }
   const selection = request();
@@ -128,7 +129,7 @@ async function configure(): Promise<void> {
   try {
     await backend.setup(request());
     element("#bootStatus").textContent = t("desktop_ready");
-    await onReady();
+    await onReady(true);
   } catch (error) { showError(error); }
   finally { setBusy(false); await updateEstimate(); }
 }

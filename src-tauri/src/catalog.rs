@@ -112,7 +112,7 @@ pub fn required(selection: &Selection) -> Result<Vec<Asset>> {
 pub fn ensure_allowed(selection: &Selection, expert_mode: bool) -> Result<()> {
     let catalog = catalog();
     let hardware = (!expert_mode).then(crate::hardware::inspect);
-    catalog.ensure_allowed(selection, expert_mode, hardware.as_ref())
+    catalog.ensure_allowed(selection, expert_mode, hardware)
 }
 
 impl Catalog {
@@ -251,9 +251,7 @@ pub async fn install_profile(
     catalog.ensure_allowed(
         selection,
         settings.expert_mode,
-        (!settings.expert_mode)
-            .then(crate::hardware::inspect)
-            .as_ref(),
+        (!settings.expert_mode).then(crate::hardware::inspect),
     )?;
     let models = catalog.required(selection)?;
     let root = Path::new(&settings.models_dir);

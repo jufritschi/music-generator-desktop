@@ -1,3 +1,13 @@
+# PR #5 review corrections — 2026-10-25
+
+The Standards and Spec reviews identified three material issues, now fixed:
+
+- Settings and admission repeatedly ran synchronous hardware detection, including inside the queue status mutex. Hardware is now one immutable process-session snapshot; generation/retry prime it before queue admission. A cross-thread test verifies that callers share it.
+- Background title-model events and delayed Creator activation/settings responses could overwrite a restored song profile. Local selection intent is now tracked separately from permission metadata: older results cannot replace a newer choice, and older catalogs cannot restore an outdated Expert Mode. Returning from setup preserves the form choice; successfully completing setup explicitly adopts the tested profile.
+- Reopening setup in Expert Mode after the normal single-size view could clear a stored 4B language model. The wizard now builds its available options before applying the stored choice or recommendation.
+
+Nine DOM regression cases exercise the actual frontend modules against the application HTML using happy-dom as a development-only dependency. The failing state-loss, stale-mode and language-selection cases were reproduced before their respective corrections; all now pass. Local validation passed: **106 Rust tests, 47 frontend tests, 28 desktop-script tests, TypeScript/Vite, ESLint, Rustfmt and Clippy with warnings as errors**. Both review axes were checked again without remaining material findings. Existing screenshots remain representative; this correction did not add a packaged-app or real-model inference run.
+
 # Expert Mode and hardware-recommended selection — 2026-10-25
 
 Normal mode offers Standard SFT Q8_0 and, only within the complete-profile RAM budget, XL SFT Q8_0. Each receives one automatic Q8_0 language-model recommendation from the existing hardware guidance. Settings → Expert Mode persistently unlocks other families, precisions and language sizes. The same policy guards backend admission and setup; accepted queue snapshots continue after disabling the mode, including after restart.

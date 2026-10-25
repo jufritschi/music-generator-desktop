@@ -9,6 +9,9 @@ import type { DownloadProgress, ModelCatalog, ModelSelection } from "./types";
 
 let catalog: ModelCatalog | undefined;
 let chosen: ModelSelection | undefined;
+let preserveSongSelection = false;
+let selectionRevision = 0;
+let settingsRevision = 0;
 let draft: ModelSelection;
 let downloading = false;
 let selecting = false;
@@ -23,9 +26,11 @@ export function generationModels(): ModelSelection | undefined {
   return chosen ? { ...chosen } : undefined;
 }
 
-// Reuse the saved profile in memory without modifying the song or its sampling values.
+// Restore a local form choice; background refreshes and older IPC results must not replace it.
 export function restoreSongModels(selection?: ModelSelection): void {
   if (!selection || selection.provider !== "ace-step") return;
+  selectionRevision++;
+  preserveSongSelection = true;
   chosen = { ...selection };
   pendingSelection = undefined;
   creatorNotice();
@@ -53,9 +58,13 @@ function compact(): void {
 }
 
 async function refresh(): Promise<void> {
-  catalog = await backend.modelCatalog();
-  expertMode = catalog.expert_mode;
-  recommendations = catalog.recommended_profiles;
+  const request = ++settingsRevision;
+  const snapshot = await backend.modelCatalog();
+  if (request === settingsRevision) {
+    expertMode = snapshot.expert_mode;
+    recommendations = snapshot.recommended_profiles;
+  }
+  catalog = { ...snapshot, expert_mode: expertMode, recommended_profiles: recommendations };
   chosen ??= { ...catalog.selection };
   compact();
 }
@@ -63,10 +72,13 @@ async function refresh(): Promise<void> {
 async function loadSelection(): Promise<void> {
   // Startup keeps its saved-setup fast path: inspect model files only when opening
   // the picker, starting an operation or reacting to an actual model change.
+  const request = ++settingsRevision;
+  const intent = selectionRevision;
   const settings = await backend.settings();
+  if (request !== settingsRevision) return;
   expertMode = settings.expert_mode;
   recommendations = settings.recommended_profiles || [];
-  chosen = { provider: settings.model_provider || "ace-step", synthesis: settings.synthesis_model || (settings.dit === "xl" ? "acestep-v15-xl-sft-Q8_0.gguf" : "acestep-v15-sft-Q8_0.gguf"), language: settings.lm_model };
+  if (!chosen || (!preserveSongSelection && intent === selectionRevision)) chosen = { provider: settings.model_provider || "ace-step", synthesis: settings.synthesis_model || (settings.dit === "xl" ? "acestep-v15-xl-sft-Q8_0.gguf" : "acestep-v15-sft-Q8_0.gguf"), language: settings.lm_model };
   compact();
 }
 
@@ -148,6 +160,7 @@ async function open(): Promise<void> {
 }
 
 async function apply(titleOnly = false): Promise<void> {
+  const intent = titleOnly ? selectionRevision : ++selectionRevision;
   downloading = true;
   compact();
   document.body.dataset.modelDownload = "true";
@@ -159,7 +172,16 @@ async function apply(titleOnly = false): Promise<void> {
   render();
   try {
     if(titleOnly) await backend.downloadTitleModel();
-    else { chosen = await backend.useModels({ ...draft }); pendingSelection = undefined; creatorNotice(); }
+    else {
+      const selected = await backend.useModels({ ...draft });
+      if (intent === selectionRevision) {
+        selectionRevision++;
+        preserveSongSelection = false;
+        chosen = selected;
+        pendingSelection = undefined;
+        creatorNotice();
+      }
+    }
     bar.max = 1; bar.value = 1;
     picker("modelProgressText").textContent = t("picker_selected");
   } catch (error) { picker("modelError").textContent = modelErrorText(error, t); }
@@ -171,7 +193,8 @@ async function apply(titleOnly = false): Promise<void> {
   }
 }
 
-export async function initializeModelPicker(): Promise<void> {
+export async function initializeModelPicker(resetSelection = false): Promise<void> {
+  if (resetSelection) { preserveSongSelection = false; selectionRevision++; }
   if (initialized) { await loadSelection(); return; }
   initialized = true;
   const openSettings = () => {
@@ -239,13 +262,20 @@ async function selectCreatorModel(): Promise<void> {
   const value = picker<HTMLSelectElement>("creatorModel").value;
   const option = creatorOptions(recommendations, chosen, expertMode).find(option => option.value === value && !option.disabled);
   if (!option || selecting || downloading) return;
+  const intent = ++selectionRevision;
   selecting = true;
   creatorNotice();
   compact();
   try {
-    chosen = await backend.selectModels({ ...option.selection });
-    pendingSelection = undefined;
+    const selected = await backend.selectModels({ ...option.selection });
+    if (intent === selectionRevision) {
+      selectionRevision++;
+      preserveSongSelection = false;
+      chosen = selected;
+      pendingSelection = undefined;
+    }
   } catch (error) {
+    if (intent !== selectionRevision) return;
     if (error instanceof Error && error.message === "model_setup_required") pendingSelection = { ...option.selection };
     creatorNotice(error);
   } finally {
@@ -255,7 +285,9 @@ async function selectCreatorModel(): Promise<void> {
 }
 
 async function updateExpertMode(): Promise<void> {
+  const request = ++settingsRevision;
   const settings = await backend.settings();
+  if (request !== settingsRevision) return;
   expertMode = settings.expert_mode;
   recommendations = settings.recommended_profiles || [];
   if (catalog) { catalog.expert_mode = expertMode; catalog.recommended_profiles = recommendations; }

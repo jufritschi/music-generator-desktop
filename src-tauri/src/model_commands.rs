@@ -39,7 +39,7 @@ pub fn model_catalog(state: State<'_, Arc<AppState>>) -> Result<Value> {
     result["selection"] = json!(Selection::from_settings(&settings));
     result["expert_mode"] = json!(settings.expert_mode);
     let hardware = crate::hardware::inspect();
-    result["recommended_profiles"] = json!(catalog.recommended_profiles(&hardware));
+    result["recommended_profiles"] = json!(catalog.recommended_profiles(hardware));
     result["hardware"] = json!(hardware);
     result["free_bytes"] = json!(fs2::available_space(root).ok());
     result["models_dir"] = json!(settings.models_dir);
@@ -57,7 +57,7 @@ pub async fn use_models(
 ) -> Result<Selection> {
     let operation = state.runtime.try_begin(OperationKind::Models)?;
     let settings = state.db.settings()?;
-    catalog::validate_activation(&settings, &selection, &crate::hardware::inspect())?;
+    catalog::validate_activation(&settings, &selection, crate::hardware::inspect())?;
     let cancel = operation.cancellation();
     // Stopping first releases resident model memory and refreshes the engine's file
     // registry on the next generation, including newly downloaded models.
@@ -82,7 +82,7 @@ pub fn select_models(
     selection: Selection,
 ) -> Result<Selection> {
     let operation = state.runtime.try_begin(OperationKind::Models)?;
-    catalog::activate_cached_profile(&state.db, &selection, &crate::hardware::inspect())?;
+    catalog::activate_cached_profile(&state.db, &selection, crate::hardware::inspect())?;
     state.stop_engine();
     drop(operation);
     let _ = app.emit("models-changed", ());
