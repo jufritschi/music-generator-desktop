@@ -1,16 +1,10 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder, pathErrorText } from "./path-dialogs";
 import { listen } from "@tauri-apps/api/event";
 import { backend } from "./backend";
 import { t } from "./i18n.js";
 import type { ImportPreview, ImportProgress, ImportRequest, ImportResult } from "./types";
 
 type Mode = "import" | "move";
-
-/// Keep the native folder grant attached to every selected path; text alone grants no access.
-async function pick(path?: string): Promise<string | null> {
-  const chosen = await open({ directory: true, defaultPath: path || undefined });
-  return typeof chosen === "string" ? chosen : null;
-}
 
 /// A fresh dialog owns its listeners and state, so reopening never reuses a stale preview.
 export async function openLibraryAssistant(mode: Mode, target: string, platform: string, onImported?: (songsDir: string) => void): Promise<void> {
@@ -133,7 +127,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, platform:
       if (result.issues.some(issue => issue.code === "select_project")) {
         reopenAt = request.root.replace(/[/\\]songs[/\\]?$/, "");
         // Only suggest the parent; a new native selection must authorize it.
-        const path = await pick(reopenAt);
+        const path = await pickFolder("import_root", reopenAt);
         if (path && current === sequence) { request.root = path; request.songs_source = null; get("#importSourcePath").textContent = path; await check(); }
       }
       get<HTMLButtonElement>("#importRun").disabled = busy || !checked?.can_import;
@@ -148,7 +142,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, platform:
   }
 
   get("#importSourcePick").onclick = () => { void (async () => {
-    const path = await pick(reopenAt || request.root);
+    const path = await pickFolder("import_root", reopenAt || request.root);
     if (!path) return;
     request.root = path; request.songs_source = null; request.allow_partial = false;
     get<HTMLInputElement>("#importPartial").checked = false;
@@ -156,18 +150,16 @@ export async function openLibraryAssistant(mode: Mode, target: string, platform:
     await check();
   })().catch(showError); };
   get("#importTargetPick").onclick = () => { void (async () => {
-    const path = await pick(request.songs_dir);
+    const path = await pickFolder("songs", request.songs_dir, true);
     if (!path) return;
-    await backend.rememberFolder(path);
     request.songs_dir = path;
     get("#importTargetPath").textContent = path;
     await check();
   })().catch(showError); };
   get("#importSongsPick").onclick = () => { void (async () => {
-    const path = await pick(request.songs_source || checked?.songs_source);
+    const path = await pickFolder("import_songs", request.songs_source || checked?.songs_source || "", mode === "move");
     if (!path) return;
-    if (mode === "move") await backend.rememberFolder(path);
-    else request.songs_source = path;
+    if (mode !== "move") request.songs_source = path;
     await check();
   })().catch(showError); };
   get<HTMLInputElement>("#importPartial").onchange = () => {
@@ -217,7 +209,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, platform:
 function errorText(error: unknown, translate: (key: string) => string): string {
   const value = error instanceof Error ? error.message : String(error);
   if (value === "Operation cancelled") return t("import_cancelled");
-  return value.startsWith("import_") ? translate(value) : value;
+  return value.startsWith("import_") ? translate(value) : pathErrorText(error);
 }
 
 function bytes(value: number): string {

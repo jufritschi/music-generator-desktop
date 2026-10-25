@@ -173,3 +173,27 @@ The preview reports song/folder counts, audio bytes, free space, collisions and 
 The source is opened read-only and backed up through SQLite, including committed WAL data. Only the snapshot is migrated. Files are created exclusively, without overwriting existing destination files. Copy failure, database failure and cancellation remove only files created by this attempt. The database records songs, folders and their destination in one transaction. **Change song storage** in settings uses the same destination checks and the existing move transaction: keep old files until the new location is committed, then remove them. Finish or cancel queued/active generations before moving.
 
 On macOS, a stored path does not confer access outside the app container. Select the source installation, any separate old song folder, and an external destination through native dialogs. Source access is needed only for the current import. Destination access is persisted with an app-scoped security-scoped bookmark and restored on startup; a revoked or invalid grant requires selecting the folder again. Existing `user-selected.read-write` and `bookmarks.app-scope` entitlements suffice. No Full Disk Access or blanket directory entitlement is needed. Playback also receives a Tauri asset-protocol grant for the committed destination. See [Apple's sandbox file-access documentation](https://developer.apple.com/documentation/security/accessing-files-from-the-macos-app-sandbox).
+
+
+## Pfadeingabe und Startordner der Dateidialoge (#20)
+
+Im Einrichtungsassistenten lassen sich Modell- und Songordner direkt bearbeiten. Beide benötigen absolute Pfade; äußere Leerzeichen werden entfernt. Leere oder relative Pfade und `~/…` werden nicht übernommen. Neue Ordner sind zulässig und werden erst beim Start der Einrichtung angelegt. Die Schätzung prüft beide Ziele nach 300 ms Eingabepause; überholte Antworten werden verworfen. Eine Datei als Ordner oder fehlender Zugriff ergibt einen übersetzten Hinweis. Fehler speichern keine neuen Einstellungen. Modellpfade werden weiterhin im Einrichtungsassistenten geändert.
+
+Alle nativen Datei- und Ordnerdialoge verwenden diese Regeln:
+
+| Zweck | Vorrangiger Startordner | Eigene Erinnerung | Erster Start |
+| --- | --- | --- | --- |
+| Modelle | Aktueller Modellpfad | Modellordner | Benutzerverzeichnis |
+| Songziel (Einrichtung, Einstellungen, Import und Verschieben) | Aktueller Zielpfad | Gemeinsamer Songzielordner | Benutzerverzeichnis |
+| Bisherige Installation | Aktuelle Importquelle bzw. vorgeschlagener Projektordner | Installationsquelle | Benutzerverzeichnis |
+| Bisheriger Songordner | Aktuelle bzw. erkannte Audioquelle | Bisheriger Songordner | Benutzerverzeichnis |
+| Audioanalyse | Zuletzt ausgewählter Audioordner | Audioimport | Benutzerverzeichnis |
+| Audioexport (WAV/MP3) | Zuletzt ausgewählter Audioexportordner | Audioexport | Downloads |
+| Lyrics als TXT | Zuletzt ausgewählter Textexportordner | Textexport | Downloads |
+| ZIP-Export | Zuletzt ausgewählter ZIP-Exportordner | ZIP-Export | Downloads |
+
+Fehlt der aktuelle Pfad, folgt der zuletzt bestätigte Ordner dieses Zwecks, danach der Standard aus der Tabelle. Die Erinnerung wird lokal unter `dialog-folders:v1` gespeichert und bleibt über Neustarts erhalten. Bei einem neuen eingegebenen Pfad startet die Auswahl im nächsten vorhandenen übergeordneten Ordner. Gelöschte Erinnerungsordner werden übersprungen; fehlt Downloads, gilt das Benutzerverzeichnis. Abbrechen verändert weder Formular noch Erinnerung. Beschädigter oder gesperrter Einstellungsspeicher verhindert die Auswahl nicht. Exporte behalten ihre bisherigen Dateinamen und Formate.
+
+Auf macOS sind diese Pfade nur Vorschläge, keine Zugriffsberechtigungen. Ein externer Ordner muss bei Bedarf über **Auswählen…** freigegeben werden. Zielordner erhalten weiterhin persistente Sandbox-Bookmarks; Importquellen und zur Analyse ausgewählte Audiodateien benötigen nur die aktuelle Sitzungsfreigabe. Ein verlorener Bookmark erfordert erneute native Auswahl.
+
+Klick, Enter und Leertaste auf das Upload-Logo öffnen einen nativen Audio-Dateidialog für WAV, MP3, FLAC, M4A und OGG. Rust liest ausschließlich dessen bestätigte Datei und begrenzt sie auf 60 MiB, bevor sie denselben Analyseablauf wie Drag-and-drop und Mikrofonaufnahmen durchläuft.

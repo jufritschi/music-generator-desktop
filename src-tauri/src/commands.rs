@@ -57,7 +57,7 @@ pub fn save_generation_form_preferences(
 
 #[tauri::command]
 pub fn remember_folder(path: String) -> Result<()> {
-    crate::sandbox::remember(std::path::Path::new(&path))
+    crate::sandbox::remember(std::path::Path::new(&path)).map_err(|_| message("path_access"))
 }
 
 #[tauri::command]
@@ -122,14 +122,8 @@ pub async fn setup_models(
 pub fn setup_estimate(state: Desktop<'_>, request: crate::setup::SetupRequest) -> Result<Value> {
     crate::setup::validate_selection(&request, &state.db.settings()?, crate::hardware::inspect())?;
     let models = crate::setup::plan(&request)?;
-    let root = PathBuf::from(&request.models_dir);
-    if !root.is_absolute() {
-        return Err(message("Select an absolute model folder"));
-    }
-    let ancestor = root
-        .ancestors()
-        .find(|p| p.is_dir())
-        .ok_or_else(|| message("Folder is unavailable"))?;
+    let (root, _) = crate::paths::setup_folders(&request.models_dir, &request.songs_dir)?;
+    let ancestor = crate::paths::folder_ancestor(&root)?;
     let missing: u64 = models
         .iter()
         .filter(|(m, _)| !root.join(&m.file).is_file())
@@ -142,7 +136,9 @@ pub fn setup_estimate(state: Desktop<'_>, request: crate::setup::SetupRequest) -
             )
         })
         .sum();
-    Ok(json!({"missing_bytes":missing,"free_bytes":fs2::available_space(ancestor)?}))
+    Ok(
+        json!({"missing_bytes":missing,"free_bytes":fs2::available_space(ancestor).map_err(|_| message("path_access"))?}),
+    )
 }
 
 #[tauri::command]
@@ -328,11 +324,11 @@ pub async fn analyze(
     selection: Option<crate::catalog::Selection>,
 ) -> Result<Value> {
     if data.len() > 60 * 1024 * 1024 {
-        return Err(message("Audio files must be smaller than 60 MB"));
+        return Err(message("audio_size"));
     }
     let extension = filename.rsplit('.').next().unwrap_or("").to_lowercase();
-    if !["wav", "mp3", "flac", "m4a", "ogg"].contains(&extension.as_str()) {
-        return Err(message("Please choose an audio file"));
+    if !crate::audio_import::AUDIO_EXTENSIONS.contains(&extension.as_str()) {
+        return Err(message("audio_type"));
     }
     let operation = state.runtime.try_begin(OperationKind::Analysis)?;
     if !state.runtime.is_ready() {
