@@ -38,6 +38,26 @@ pub fn plan(request: &SetupRequest) -> Result<Vec<(manifest::Model, String)>> {
     Ok(selected)
 }
 
+/// The wizard cannot activate or download non-recommended profiles outside Expert Mode.
+pub fn validate_selection(
+    request: &SetupRequest,
+    settings: &Settings,
+    hardware: &hardware::Hardware,
+) -> Result<()> {
+    let catalog = crate::catalog::catalog();
+    let mut selection = crate::catalog::Selection {
+        provider: "ace-step".into(),
+        synthesis: catalog.basic_models.synthesis[0].clone(),
+        language: manifest::lm_file(&request.lm),
+    };
+    catalog.ensure_allowed(&selection, settings.expert_mode, Some(hardware))?;
+    if request.xl {
+        selection.synthesis = catalog.basic_models.synthesis[1].clone();
+        catalog.ensure_allowed(&selection, settings.expert_mode, Some(hardware))?;
+    }
+    Ok(())
+}
+
 pub fn fingerprint(lm: &str, gpu: &str) -> String {
     format!(
         "{}:{}:{}:{}:{:?}",
@@ -57,6 +77,8 @@ pub async fn configure(
     authorize: impl FnOnce(&Path) -> Result<()>,
 ) -> Result<Value> {
     let change = Change::begin(state.clone(), OperationKind::Setup)?;
+    validate_selection(&request, &state.db.settings()?, hardware::inspect())?;
+    state.stop_engine();
     let cancel = change.cancellation();
     let settings = prepare_configuration(
         &state,

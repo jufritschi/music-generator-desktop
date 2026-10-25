@@ -2,6 +2,8 @@ export interface Settings {
   models_dir: string; songs_dir: string; lm_model: string; dit: "standard" | "xl";
   model_provider: string; synthesis_model: string;
   lm_device: "auto" | "cpu"; export_format: "wav" | "mp3"; mp3_available?: boolean;
+  expert_mode: boolean;
+  recommended_profiles?: ModelSelection[];
   cpu_only?: boolean;
   poll_interval: number; timeout_minutes: number; mode: "single" | "split";
   vae_chunk: number | null; tested_fingerprint: string; setup_complete: boolean;
@@ -29,6 +31,7 @@ export interface Health { ok: boolean; error?: string; props?: { models?: Record
 export interface Update { available: boolean; current: string; latest?: string; url?: string; notes?: string }
 export interface Model { file: string; estimated_bytes: number; sha256: string; kind: string }
 export interface Bootstrap {
+  recommended_profiles: ModelSelection[];
   needs_setup: boolean; settings: Settings; version: string; data_dir: string; error: string | null;
   hardware: { ram_bytes: number; gpu: string; vram_bytes: number | null; recommended_lm: string; vae_chunk: number | null; platform: string; cpu_only: boolean };
   title_model: Model;
@@ -52,7 +55,12 @@ export interface TitleModel extends Model { verified: boolean; present: boolean;
 export interface ModelCatalog {
   title_model: TitleModel;
   version: number; revision: string; models: CatalogModel[];
+  expert_mode: boolean; expert_families: string[];
+  basic_models: { synthesis: string[]; language: string[] };
+  recommended_profiles: ModelSelection[];
   providers: { id: string; name: string; status: "available" | "planned"; adapter: string | null; source: string }[];
   selection: ModelSelection; hardware: Bootstrap["hardware"]; free_bytes: number | null;
   models_dir: string; busy: boolean;
 }
+
+export type SettingsPatch = Partial<Pick<Settings, "timeout_minutes" | "songs_dir" | "lm_device" | "export_format" | "expert_mode">>;

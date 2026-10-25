@@ -130,6 +130,20 @@ impl Runtime {
         result
     }
 
+    /// Serialize preference writes with queue admission, without stopping an active engine job.
+    pub fn update_preferences<T>(&self, update: impl FnOnce() -> Result<T>) -> Result<T> {
+        let status = self.status.lock().unwrap();
+        if self.is_shutdown()
+            || status
+                .active
+                .as_ref()
+                .is_some_and(|a| a.kind.blocks_enqueue())
+        {
+            return Err(message("Please wait for the current operation to finish"));
+        }
+        update()
+    }
+
     pub fn is_busy(&self) -> bool {
         self.status.lock().unwrap().active.is_some()
     }

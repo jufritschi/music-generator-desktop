@@ -56,6 +56,8 @@ pub async fn worker(state: Arc<AppState>, app: AppHandle) {
         let _awake = crate::power::KeepAwake::new();
         let outcome = async {
             let mut settings = state.db.settings()?;
+            // Admission checks Expert Mode for new jobs and retries. Already accepted rows
+            // keep running after it is disabled, including rows restored after restart.
             // New jobs carry an immutable model snapshot. Legacy rows remain untouched.
             if let Some(selection) = params.get("model_selection").filter(|v| !v.is_null()) {
                 let selection: crate::catalog::Selection =

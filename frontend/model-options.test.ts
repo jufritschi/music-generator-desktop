@@ -5,7 +5,7 @@ import { modelOptions, profile } from "./model-options";
 import type { ModelCatalog, ModelSelection } from "./types";
 
 function catalog(): ModelCatalog {
-  return { ...source, title_model: {...title.model,verified:false,present:false,partial_bytes:0}, models: source.models.map(m => ({ ...m, present: false, verified: false, partial_bytes: 0 })), selection: selection(), hardware: { ram_bytes: 8 * 1024 ** 3, gpu: "CPU", vram_bytes: null, recommended_lm: "0.6B", vae_chunk: 256, platform: "macos", cpu_only: true }, free_bytes: 50 * 1024 ** 3, models_dir: "/models", busy: false } as ModelCatalog;
+  return { ...source, title_model: {...title.model,verified:false,present:false,partial_bytes:0}, expert_mode: true, recommended_profiles: [selection()], models: source.models.map(m => ({ ...m, present: false, verified: false, partial_bytes: 0 })), selection: selection(), hardware: { ram_bytes: 8 * 1024 ** 3, gpu: "CPU", vram_bytes: null, recommended_lm: "0.6B", vae_chunk: 256, platform: "macos", cpu_only: true }, free_bytes: 50 * 1024 ** 3, models_dir: "/models", busy: false } as ModelCatalog;
 }
 function selection(): ModelSelection { return { provider: "ace-step", synthesis: "acestep-v15-sft-Q8_0.gguf", language: "acestep-5Hz-lm-0.6B-Q8_0.gguf" }; }
 
@@ -51,4 +51,34 @@ it("provides turbo's eight steps without changing the caller's selection", () =>
   const s = Object.freeze({ ...selection(), synthesis: "acestep-v15-turbo-shift3-Q6_K.gguf" });
   expect(profile(c, s).steps).toBe(8);
   expect(profile(c, selection()).steps).toBe(80);
+});
+
+it("shows only recommended Standard/XL profiles and their automatic language model in simple mode", () => {
+  const c = catalog();
+  c.expert_mode = false;
+  for (const compatibleOnly of [true, false]) {
+    expect(modelOptions(c, selection(), "synthesis", compatibleOnly).map(m => m.file)).toEqual([selection().synthesis]);
+    expect(modelOptions(c, selection(), "language", compatibleOnly).map(m => m.file)).toEqual([selection().language]);
+  }
+  const xl = { ...selection(), synthesis: "acestep-v15-xl-sft-Q8_0.gguf" };
+  c.hardware.ram_bytes = 16 * 1024 ** 3;
+  c.recommended_profiles.push(xl);
+  expect(modelOptions(c, selection(), "synthesis", false).map(m => m.file)).toEqual([selection().synthesis, xl.synthesis]);
+});
+
+it("never exposes a saved advanced selection through the RAM-filter exception", () => {
+  const c = catalog();
+  c.expert_mode = false;
+  const saved = Object.freeze({ ...selection(), synthesis: "acestep-v15-turbo-shift3-Q6_K.gguf" });
+  for (const compatibleOnly of [true, false]) {
+    expect(modelOptions(c, saved, "synthesis", compatibleOnly).some(m => m.file === saved.synthesis)).toBe(false);
+  }
+  expect(profile(c, saved).valid).toBe(true);
+  expect(profile(c, saved).allowed).toBe(false);
+  c.expert_mode = true;
+  expect(profile(c, saved).allowed).toBe(true);
+  expect(modelOptions(c, saved, "synthesis", false)).toHaveLength(52);
+  c.expert_mode = false;
+  expect(profile(c, saved).allowed).toBe(false);
+  expect(saved.synthesis).toBe("acestep-v15-turbo-shift3-Q6_K.gguf");
 });

@@ -7,6 +7,7 @@ use std::path::Path;
 #[derive(Default, serde::Deserialize)]
 #[serde(default)]
 pub struct SettingsPatch {
+    pub expert_mode: Option<bool>,
     pub lm_device: Option<String>,
     pub export_format: Option<String>,
     pub timeout_minutes: Option<f64>,
@@ -15,12 +16,25 @@ pub struct SettingsPatch {
 }
 
 impl SettingsPatch {
+    pub(super) fn expert_only(&self) -> bool {
+        self.expert_mode.is_some()
+            && self.lm_device.is_none()
+            && self.export_format.is_none()
+            && self.timeout_minutes.is_none()
+            && self.dit.is_none()
+            && self.songs_dir.is_none()
+    }
+
     pub(super) fn apply(
         self,
         mut settings: Settings,
         root: &Path,
         resources: &Path,
     ) -> Result<Settings> {
+        let selection_changed = self.dit.is_some();
+        if let Some(enabled) = self.expert_mode {
+            settings.expert_mode = enabled;
+        }
         if let Some(device) = self.lm_device {
             settings.lm_device = device;
         }
@@ -42,6 +56,12 @@ impl SettingsPatch {
             };
         }
         validate_settings(&settings)?;
+        if selection_changed {
+            crate::catalog::ensure_allowed(
+                &crate::catalog::Selection::from_settings(&settings),
+                settings.expert_mode,
+            )?;
+        }
         if settings.export_format == "mp3" && !crate::audio_export::codec_path(resources).is_file()
         {
             return Err(message("mp3_failed"));

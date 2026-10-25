@@ -355,3 +355,155 @@ async fn an_aborted_settings_caller_does_not_release_an_inflight_commit() {
     assert_eq!(library.db.settings().unwrap().timeout_minutes, 45.0);
     assert_eq!(std::fs::read(&library.original).unwrap(), b"original audio");
 }
+
+#[tokio::test]
+async fn expert_preference_can_change_during_engine_work_but_not_exclusive_operations() {
+    for kind in [
+        OperationKind::Generation,
+        OperationKind::Analysis,
+        OperationKind::Setup,
+        OperationKind::Models,
+        OperationKind::Settings,
+        OperationKind::Startup,
+        OperationKind::Import,
+    ] {
+        let library = Library::new();
+        let operation = library.state.runtime.try_begin(kind).unwrap();
+        let token = operation.cancellation();
+        let result = save(
+            library.state.clone(),
+            SettingsPatch {
+                expert_mode: Some(true),
+                ..Default::default()
+            },
+            |_| panic!("No folder authorization"),
+        )
+        .await;
+        let allowed = matches!(kind, OperationKind::Generation | OperationKind::Analysis);
+        assert_eq!(result.is_ok(), allowed, "{kind:?}");
+        assert_eq!(library.db.settings().unwrap().expert_mode, allowed);
+        assert!(!token.is_cancelled());
+        assert!(library.state.runtime.is_busy());
+        library.assert_unchanged();
+    }
+}
+
+#[tokio::test]
+async fn mixed_settings_and_preference_write_failures_are_atomic() {
+    let library = Library::new();
+    let operation = library
+        .state
+        .runtime
+        .try_begin(OperationKind::Generation)
+        .unwrap();
+    let before = serde_json::to_value(library.db.settings().unwrap()).unwrap();
+    assert!(save(
+        library.state.clone(),
+        SettingsPatch {
+            expert_mode: Some(true),
+            timeout_minutes: Some(45.0),
+            ..Default::default()
+        },
+        |_| Ok(())
+    )
+    .await
+    .is_err());
+    library.db.lock().execute_batch("CREATE TRIGGER reject_expert BEFORE INSERT ON settings WHEN NEW.key='expert_mode' BEGIN SELECT RAISE(ABORT,'injected failure'); END;").unwrap();
+    assert!(save(
+        library.state.clone(),
+        SettingsPatch {
+            expert_mode: Some(true),
+            ..Default::default()
+        },
+        |_| Ok(())
+    )
+    .await
+    .is_err());
+    assert_eq!(
+        serde_json::to_value(library.db.settings().unwrap()).unwrap(),
+        before
+    );
+    assert!(!operation.cancellation().is_cancelled());
+}
+
+#[test]
+fn preference_writes_and_queue_admission_have_a_single_order() {
+    use std::sync::mpsc;
+    for preference_first in [false, true] {
+        let library = Library::new();
+        library.db.set_expert_mode(true).unwrap();
+        let state = library.state.clone();
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let first = std::thread::spawn(move || {
+            if preference_first {
+                state
+                    .runtime
+                    .update_preferences(|| {
+                        state.db.set_expert_mode(false)?;
+                        entered_tx.send(()).unwrap();
+                        release_rx.recv().unwrap();
+                        Ok(false)
+                    })
+                    .unwrap()
+            } else {
+                state
+                    .runtime
+                    .enqueue(|| {
+                        let enabled = state.db.settings()?.expert_mode;
+                        entered_tx.send(()).unwrap();
+                        release_rx.recv().unwrap();
+                        Ok(enabled)
+                    })
+                    .unwrap()
+            }
+        });
+        entered_rx.recv().unwrap();
+        let state = library.state.clone();
+        let second = std::thread::spawn(move || {
+            if preference_first {
+                state
+                    .runtime
+                    .enqueue(|| Ok(state.db.settings()?.expert_mode))
+                    .unwrap()
+            } else {
+                state
+                    .runtime
+                    .update_preferences(|| {
+                        state.db.set_expert_mode(false)?;
+                        Ok(false)
+                    })
+                    .unwrap()
+            }
+        });
+        release_tx.send(()).unwrap();
+        assert_eq!(first.join().unwrap(), !preference_first);
+        assert!(!second.join().unwrap());
+        assert!(!library.db.settings().unwrap().expert_mode);
+    }
+}
+
+#[tokio::test]
+async fn legacy_dit_patch_cannot_activate_an_advanced_profile_without_expert_mode() {
+    let library = Library::new();
+    let mut settings = library.db.settings().unwrap();
+    settings.expert_mode = true;
+    settings.lm_model = "acestep-5Hz-lm-0.6B-BF16.gguf".into();
+    library.db.save_settings(&settings).unwrap();
+    let before = serde_json::to_value(&settings).unwrap();
+    let result = save(
+        library.state.clone(),
+        SettingsPatch {
+            expert_mode: Some(false),
+            dit: Some("standard".into()),
+            ..Default::default()
+        },
+        |_| panic!("A restricted profile cannot authorize folders"),
+    )
+    .await;
+    assert_eq!(result.unwrap_err().to_string(), "expert_mode_required");
+    assert_eq!(
+        serde_json::to_value(library.db.settings().unwrap()).unwrap(),
+        before
+    );
+}

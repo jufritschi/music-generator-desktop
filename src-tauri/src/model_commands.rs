@@ -37,7 +37,10 @@ pub fn model_catalog(state: State<'_, Arc<AppState>>) -> Result<Value> {
     );
     result["title_model"] = crate::titles::status(root, &verifier);
     result["selection"] = json!(Selection::from_settings(&settings));
-    result["hardware"] = json!(crate::hardware::inspect());
+    result["expert_mode"] = json!(settings.expert_mode);
+    let hardware = crate::hardware::inspect();
+    result["recommended_profiles"] = json!(catalog.recommended_profiles(hardware));
+    result["hardware"] = json!(hardware);
     result["free_bytes"] = json!(fs2::available_space(root).ok());
     result["models_dir"] = json!(settings.models_dir);
     result["busy"] = json!(state.runtime.is_busy());
@@ -54,16 +57,7 @@ pub async fn use_models(
 ) -> Result<Selection> {
     let operation = state.runtime.try_begin(OperationKind::Models)?;
     let settings = state.db.settings()?;
-    if !settings.setup_complete {
-        return Err(message("Complete the first-run assistant first"));
-    }
-    if !catalog::compatible(&selection, &crate::hardware::inspect())?
-        && selection != Selection::from_settings(&settings)
-    {
-        return Err(message(
-            "This model combination exceeds the estimated RAM budget. Choose smaller models",
-        ));
-    }
+    catalog::validate_activation(&settings, &selection, crate::hardware::inspect())?;
     let cancel = operation.cancellation();
     // Stopping first releases resident model memory and refreshes the engine's file
     // registry on the next generation, including newly downloaded models.
@@ -78,6 +72,22 @@ pub async fn use_models(
     let _ = app.emit("models-changed", ());
     state.changed(&app);
     outcome
+}
+
+/// Creator drop-down: only activate an already verified local profile, without downloads.
+#[tauri::command]
+pub fn select_models(
+    state: State<'_, Arc<AppState>>,
+    app: AppHandle,
+    selection: Selection,
+) -> Result<Selection> {
+    let operation = state.runtime.try_begin(OperationKind::Models)?;
+    catalog::activate_cached_profile(&state.db, &selection, crate::hardware::inspect())?;
+    state.stop_engine();
+    drop(operation);
+    let _ = app.emit("models-changed", ());
+    state.changed(&app);
+    Ok(selection)
 }
 
 #[tauri::command]

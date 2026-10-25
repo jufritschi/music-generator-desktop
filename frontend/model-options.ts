@@ -1,3 +1,4 @@
+import { modelAllowed, modelLabel } from "./expert-mode";
 import type { CatalogModel, ModelCatalog, ModelSelection } from "./types";
 
 export function profileModels(catalog: ModelCatalog, selection: ModelSelection): CatalogModel[] {
@@ -13,7 +14,7 @@ export function profile(catalog: ModelCatalog, selection: ModelSelection) {
   const memory = models.reduce((n, m) => n + m.estimated_bytes, 0) +
     (selection.synthesis.includes("-xl-") ? 4 : 3) * 1024 ** 3;
   return {
-    models, valid, memory, compatible: valid && memory <= catalog.hardware.ram_bytes,
+    models, valid, allowed: modelAllowed(selection, catalog.expert_mode, catalog.recommended_profiles), memory, compatible: valid && memory <= catalog.hardware.ram_bytes,
     verified: valid && models.every(m => m.verified),
     download: models.filter(m => !m.present).reduce((n, m) => n + Math.max(0, m.estimated_bytes - m.partial_bytes), 0),
     steps: models.find(m => m.role === "synthesis")?.recommended_steps,
@@ -21,11 +22,17 @@ export function profile(catalog: ModelCatalog, selection: ModelSelection) {
 }
 
 export function modelName(file: string): string {
-  return file.replace(/\.gguf$/, "").replace(/^acestep-v15-/, "").replace(/^acestep-5Hz-lm-/, "LM ");
+  return modelLabel(file, true);
 }
 
 export function modelOptions(catalog: ModelCatalog, selection: ModelSelection, role: "synthesis" | "language", compatibleOnly: boolean): CatalogModel[] {
   const field = role === "synthesis" ? "synthesis" : "language";
-  return catalog.models.filter(m => m.provider === selection.provider && m.role === role &&
-    (!compatibleOnly || m.file === selection[field] || profile(catalog, { ...selection, [field]: m.file }).compatible));
+  return catalog.models.filter(m => {
+    if (m.provider !== selection.provider || m.role !== role) return false;
+    if (!catalog.expert_mode) {
+      return catalog.recommended_profiles.some(p => p.provider === selection.provider &&
+        (role === "synthesis" ? p.synthesis === m.file : p.synthesis === selection.synthesis && p.language === m.file));
+    }
+    return !compatibleOnly || m.file === selection[field] || profile(catalog, { ...selection, [field]: m.file }).compatible;
+  });
 }

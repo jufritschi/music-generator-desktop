@@ -1,5 +1,6 @@
 import "./desktop-i18n";
 import "./model-i18n";
+import "./expert-i18n";
 import "./title-i18n";
 import { applyI18n, t } from "./i18n.js";
 import { backend } from "./backend";
@@ -10,10 +11,10 @@ import type { Bootstrap } from "./types";
 import { initializeModelPicker } from "./model-picker";
 
 let bootstrap: Bootstrap;
-async function showStudio(): Promise<void> {
+async function showStudio(resetSelection = false): Promise<void> {
   element("#setupScreen").hidden = true; element("#studio").hidden = false;
   await import("./studio.js");
-  await initializeModelPicker();
+  await initializeModelPicker(resetSelection);
   document.dispatchEvent(new Event("studio-ready"));
   requestAnimationFrame(() => element<HTMLInputElement>('#genForm input[name="title"]').focus({preventScroll:true}));
 }

@@ -2,6 +2,26 @@
   "version": 1,
   "revision": "666ac70204440867d8c01ba4b119cc79c95b370a",
   "base_url": "https://huggingface.co/Serveurperso/ACE-Step-1.5-GGUF/resolve/666ac70204440867d8c01ba4b119cc79c95b370a",
+  "expert_families": [
+    "acestep-v15-turbo",
+    "acestep-v15-turbo-continuous",
+    "acestep-v15-turbo-shift1",
+    "acestep-v15-turbo-shift3",
+    "acestep-v15-sftturbo50",
+    "acestep-v15-xl-turbo",
+    "acestep-v15-xl-sftturbo50"
+  ],
+  "basic_models": {
+    "synthesis": [
+      "acestep-v15-sft-Q8_0.gguf",
+      "acestep-v15-xl-sft-Q8_0.gguf"
+    ],
+    "language": [
+      "acestep-5Hz-lm-0.6B-Q8_0.gguf",
+      "acestep-5Hz-lm-1.7B-Q8_0.gguf",
+      "acestep-5Hz-lm-4B-Q8_0.gguf"
+    ]
+  },
   "providers": [
     {
       "id": "ace-step",

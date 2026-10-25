@@ -25,7 +25,8 @@ html[data-platform=macos] .titlebar nav { display: none; }
 #setupBack { margin-top: 16px; }
 .download { cursor: pointer; color: var(--accent2); background: transparent; border: 1px solid var(--border); border-radius: 5px; }
 .model-bar { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
-.model-bar > div { min-width: 0; flex: 1; display: grid; gap: 6px; }
+.model-bar .field { min-width: 0; flex: 1; margin: 0; display: grid; gap: 6px; }
+#creatorModel { width: 100%; min-width: 0; text-overflow: ellipsis; }
 #currentModels { overflow-wrap: anywhere; }
 .model-bar button { flex-shrink: 0; }
 #modelPicker { width: min(860px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); box-sizing: border-box; overflow: auto; }

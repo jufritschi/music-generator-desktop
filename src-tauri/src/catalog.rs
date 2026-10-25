@@ -43,10 +43,18 @@ impl Asset {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BasicModels {
+    pub synthesis: Vec<String>,
+    pub language: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Catalog {
     pub version: u32,
     pub revision: String,
     pub base_url: String,
+    pub expert_families: Vec<String>,
+    pub basic_models: BasicModels,
     pub providers: Vec<Provider>,
     pub models: Vec<Asset>,
 }
@@ -100,7 +108,64 @@ pub fn required(selection: &Selection) -> Result<Vec<Asset>> {
     catalog().required(selection)
 }
 
+/// Admission policy applies to new work, never to restoration or already accepted queue rows.
+pub fn ensure_allowed(selection: &Selection, expert_mode: bool) -> Result<()> {
+    let catalog = catalog();
+    let hardware = (!expert_mode).then(crate::hardware::inspect);
+    catalog.ensure_allowed(selection, expert_mode, hardware)
+}
+
 impl Catalog {
+    pub fn ensure_allowed(
+        &self,
+        selection: &Selection,
+        expert_mode: bool,
+        hardware: Option<&Hardware>,
+    ) -> Result<()> {
+        self.required(selection)?;
+        if !expert_mode
+            && !hardware.is_some_and(|hw| self.recommended_profiles(hw).contains(selection))
+        {
+            return Err(message("expert_mode_required"));
+        }
+        Ok(())
+    }
+
+    /// Pick one supported language model per synthesis profile within the existing RAM estimate.
+    pub fn recommended_profiles(&self, hardware: &Hardware) -> Vec<Selection> {
+        let recommended = crate::manifest::lm_file(&hardware.recommended_lm);
+        let Some(limit) = self
+            .basic_models
+            .language
+            .iter()
+            .position(|file| file == &recommended)
+        else {
+            return Vec::new();
+        };
+        self.basic_models
+            .synthesis
+            .iter()
+            .filter_map(|synthesis| {
+                self.basic_models.language[..=limit]
+                    .iter()
+                    .rev()
+                    .find_map(|language| {
+                        let selection = Selection {
+                            provider: "ace-step".into(),
+                            synthesis: synthesis.clone(),
+                            language: language.clone(),
+                        };
+                        let models = self.required(&selection).ok()?;
+                        (!models
+                            .iter()
+                            .any(|m| self.expert_families.contains(&m.family))
+                            && memory_bytes(&models) <= hardware.ram_bytes)
+                            .then_some(selection)
+                    })
+            })
+            .collect()
+    }
+
     pub fn required(&self, selection: &Selection) -> Result<Vec<Asset>> {
         // Adding provider metadata does not enable a runtime. Future adapters dispatch here.
         if selection.provider != "ace-step"
@@ -135,6 +200,44 @@ impl Catalog {
     }
 }
 
+/// Check new default profiles without changing settings, resident engines or model files.
+pub fn validate_activation(
+    settings: &Settings,
+    selection: &Selection,
+    hardware: &Hardware,
+) -> Result<()> {
+    if !settings.setup_complete {
+        return Err(message("Complete the first-run assistant first"));
+    }
+    catalog().ensure_allowed(selection, settings.expert_mode, Some(hardware))?;
+    if !compatible(selection, hardware)? && selection != &Selection::from_settings(settings) {
+        return Err(message(
+            "This model combination exceeds the estimated RAM budget. Choose smaller models",
+        ));
+    }
+    Ok(())
+}
+
+/// Activate verified local files only. Creator selection never downloads or repairs assets.
+/// The caller holds a Models permit until the old engine has been released.
+pub fn activate_cached_profile(
+    db: &crate::db::Database,
+    selection: &Selection,
+    hardware: &Hardware,
+) -> Result<()> {
+    let mut settings = db.settings()?;
+    validate_activation(&settings, selection, hardware)?;
+    if !cached(
+        selection,
+        Path::new(&settings.models_dir),
+        &ModelVerifier::open(&db.root),
+    )? {
+        return Err(message("model_setup_required"));
+    }
+    selection.apply(&mut settings)?;
+    db.save_settings(&settings)
+}
+
 /// Called while holding a runtime operation permit so downloads, verification and profile writes
 /// cannot race setup, analysis, another activation or an engine job.
 pub async fn install_profile(
@@ -145,6 +248,11 @@ pub async fn install_profile(
     progress: impl Fn(crate::download::DownloadProgress),
 ) -> Result<()> {
     let mut settings = db.settings()?;
+    catalog.ensure_allowed(
+        selection,
+        settings.expert_mode,
+        (!settings.expert_mode).then(crate::hardware::inspect),
+    )?;
     let models = catalog.required(selection)?;
     let root = Path::new(&settings.models_dir);
     let missing: u64 = models

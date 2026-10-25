@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::process::Command;
+use std::{process::Command, sync::OnceLock};
 use sysinfo::{MemoryRefreshKind, System};
 
 #[derive(Debug, Clone, Serialize)]
@@ -67,7 +67,13 @@ pub fn recommend(ram: u64, vram: Option<u64>) -> (&'static str, Option<u32>) {
     (size, chunk)
 }
 
-pub fn inspect() -> Hardware {
+/// Hardware capacity is stable for an app session; ordinary commands reuse this snapshot.
+pub fn inspect() -> &'static Hardware {
+    static SNAPSHOT: OnceLock<Hardware> = OnceLock::new();
+    SNAPSHOT.get_or_init(detect)
+}
+
+fn detect() -> Hardware {
     let mut sys = System::new();
     sys.refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());
     let ram = sys.total_memory();
@@ -152,4 +158,18 @@ fn adapter() -> (String, Option<u64>) {
         }
     }
     ("Vulkan if available; CPU fallback".into(), None)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn settings_and_admission_share_one_immutable_hardware_snapshot() {
+        let snapshot = super::inspect();
+        assert!(std::ptr::eq(snapshot, super::inspect()));
+        assert!(
+            std::thread::spawn(move || std::ptr::eq(snapshot, super::inspect()))
+                .join()
+                .unwrap()
+        );
+    }
 }

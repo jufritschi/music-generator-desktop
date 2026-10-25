@@ -167,6 +167,7 @@ async fn activation_is_atomic_on_checksum_failure_and_cancellation_then_reuses_v
         settings.models_dir = root.path().to_string_lossy().into();
         settings.lm_model = selection().language;
         settings.setup_complete = true;
+        settings.expert_mode = true;
         db.save_settings(&settings).unwrap();
         let original = serde_json::to_value(&settings).unwrap();
         let bad = Arc::new(AtomicBool::new(corrupt));

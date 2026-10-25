@@ -27,6 +27,8 @@ describe("desktop contracts", () => {
   it("passes model selections through typed commands and preserves job snapshots", async () => {
     const selection = { provider: "ace-step", synthesis: "acestep-v15-turbo-Q8_0.gguf", language: "acestep-5Hz-lm-4B-Q6_K.gguf" };
     invoke.mockResolvedValue(selection);
+    await backend.selectModels(selection);
+    expect(invoke).toHaveBeenLastCalledWith("select_models", { selection });
     await backend.useModels(selection);
     expect(invoke).toHaveBeenLastCalledWith("use_models", { selection });
     await backend.generate({ prompt: "piano", model_selection: selection, inference_steps: 8 });
