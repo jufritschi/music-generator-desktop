@@ -31,7 +31,7 @@ Save errors leave the dialog open and do not enqueue the request.
 
 ## Verification
 
-- Frontend: TypeScript/Vite build, ESLint, Vitest (130 tests).
+- Frontend: TypeScript/Vite build, ESLint, Vitest (143 tests).
 - Desktop scripts: 28 tests. Rust tests and Clippy with warnings denied.
 - Real browser check using production studio markup/modules and mocked Tauri
   IPC: visible warning with Advanced collapsed, German CPU dialog with remember checkbox, exact 29/30 red boundary,
