@@ -149,10 +149,10 @@ function readForm() {
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!form.prompt.value.trim() && !form.style.value.trim()) { form.prompt.focus(); return; }
   const btn = $("#genBtn");
   if (btn.disabled) return;
   if (!generationModelAllowed()) { alert(t("expert_mode_required")); return; }
+  if (!form.prompt.value.trim()) form.prompt.value = randomPrompt(form.instrumental.checked);
   btn.classList.remove("fired"); void btn.offsetWidth; btn.classList.add("fired");   // Animation auch bei Enter/Alt+G
   btn.disabled = true;
   try {
