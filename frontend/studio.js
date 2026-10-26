@@ -112,7 +112,21 @@ function syncLyrics() {
 }
 function rollAnim(btn) { btn.classList.remove("roll"); void btn.offsetWidth; btn.classList.add("roll"); }
 function rollDice(btn, field, gen) { field.value = gen(); rollAnim(btn); }
-$("#diceBtn").addEventListener("click", (e) => { rollDice(e.currentTarget, form.prompt, () => randomPrompt(form.instrumental.checked)); });
+let generatedPrompt = null;
+function clearGeneratedPrompt() {
+  generatedPrompt = null;
+  $("#promptGenerated").hidden = true;
+}
+function setPrompt(value, generated = false) {
+  form.prompt.value = value;
+  generatedPrompt = generated ? value : null;
+  $("#promptGenerated").hidden = !generated;
+}
+form.prompt.addEventListener("input", () => {
+  if (form.prompt.value !== generatedPrompt) clearGeneratedPrompt();
+});
+form.addEventListener("reset", clearGeneratedPrompt);
+$("#diceBtn").addEventListener("click", (e) => { setPrompt(randomPrompt(form.instrumental.checked), true); rollAnim(e.currentTarget); });
 $("#titleDice").addEventListener("click", (e) => rollDice(e.currentTarget, form.title, randomTitle));
 $("#styleDice").addEventListener("click", (e) => { rollDice(e.currentTarget, form.style, () => randomStyle(form.instrumental.checked)); syncStyleChips(); });
 
@@ -152,7 +166,7 @@ form.addEventListener("submit", async (e) => {
   const btn = $("#genBtn");
   if (btn.disabled) return;
   if (!generationModelAllowed()) { alert(t("expert_mode_required")); return; }
-  if (!form.prompt.value.trim()) form.prompt.value = randomPrompt(form.instrumental.checked);
+  if (!form.prompt.value.trim()) setPrompt(randomPrompt(form.instrumental.checked), true);
   btn.classList.remove("fired"); void btn.offsetWidth; btn.classList.add("fired");   // Animation auch bei Enter/Alt+G
   btn.disabled = true;
   try {
@@ -178,7 +192,7 @@ function fillForm(s) {
   restoreSongModels(p.model_selection);
   form.title.value = s.title || "";
   form.style.value = p.style ?? p.caption;   // ältere Songs haben nur einen Text
-  form.prompt.value = p.prompt ?? ""; syncStyleChips();
+  setPrompt(p.prompt ?? ""); syncStyleChips();
   form.instrumental.checked = p.lyrics === "[Instrumental]";
   form.keep_caption.checked = true;   // Prompt wörtlich ist fest die Vorgabe
   lyricsStash = ""; form.lyrics.value = form.instrumental.checked ? "" : p.lyrics || "";
@@ -217,7 +231,7 @@ async function analyzeFile(file, idea = null) {   // idea = Messwerte einer Mikr
   dzState("busy", t("analyzing", file.name));
   try {
     const r = await backend.analyze(file, generationModels());
-    form.prompt.value = idea ? describeIdea(idea, r.caption, r.keyscale) : r.caption || "";
+    setPrompt(idea ? describeIdea(idea, r.caption, r.keyscale) : r.caption || "");
     // Keep explicit titles; blank titles are named from the finished song locally.
    
     // Nur echter Text außerhalb von [Strukturmarkern] zählt als Gesang — sonst schreibt das

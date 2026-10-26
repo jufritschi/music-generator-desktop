@@ -131,6 +131,8 @@ input[type=range] { padding: 0; border: 0; background: none; accent-color: var(-
 .toggles { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin: 2px 0 16px; }
 select.mini { width: auto; padding: 3px 6px; font-size: 12px; text-transform: none; letter-spacing: 0; }
 .lblrow { display: flex; align-items: center; justify-content: space-between; }
+.prompt-label { display: flex; align-items: center; gap: 8px; }
+.generated-chip { font-size: 9px; font-weight: 600; letter-spacing: .06em; padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; color: var(--accent2); background: var(--gold-tint); }
 .dice { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; width: 34px; height: 30px; padding: 0; display: grid; place-items: center; }
 .dice:hover { color: var(--accent); border-color: var(--accent); }
 .dice:disabled { opacity: .5; cursor: not-allowed; }
