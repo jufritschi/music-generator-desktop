@@ -22,12 +22,10 @@ export function updateCpuWarnings(): void {
   const input = document.querySelector<HTMLInputElement>('#genForm [name="inference_steps"]');
   const visible = needsCpuWarning(policy.backend, Number(input?.value));
   input?.closest(".slider")?.classList.toggle("cpu-risk", visible);
-  if (visible) input?.setAttribute("aria-describedby", "cpuIterationWarning");
+  if (visible) input?.setAttribute("aria-describedby", "cpuGenerationWarning");
   else input?.removeAttribute("aria-describedby");
-  for (const id of ["cpuIterationWarning", "cpuGenerationWarning"]) {
-    const node = document.getElementById(id);
-    if (node) { node.hidden = !visible; const text = t(warningKey(policy.backend)); if (node.textContent !== text) node.textContent = text; }
-  }
+  const node = document.getElementById("cpuGenerationWarning");
+  if (node) { node.hidden = !visible; const text = t(warningKey(policy.backend)); if (node.textContent !== text) node.textContent = text; }
 }
 
 export type CpuChoice = "reduce" | "continue" | null;

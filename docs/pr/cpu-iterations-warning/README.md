@@ -17,7 +17,7 @@ not a hardware reservation or a runtime estimate.
 ## Red slider and remembered behavior
 
 At 30 steps the CPU/unknown slider fill, thumb and number turn red and the
-inline/persistent hints become visible. Below 30 both disappear; on GPU neither
+single persistent hint becomes visible. Below 30 both disappear; on GPU neither
 is shown. The confirmation starts only above 30.
 
 The unchecked-by-default “Remember this decision” checkbox persists either

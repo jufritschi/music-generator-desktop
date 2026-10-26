@@ -64,12 +64,13 @@ it("shows translated warnings outside collapsed advanced settings after policy f
   await loadGenerationPolicy();
   const input = document.querySelector<HTMLInputElement>('[name="inference_steps"]')!; input.value = "31"; updateCpuWarnings();
   const warning = document.getElementById("cpuGenerationWarning")!;
+  expect(document.querySelectorAll("#genForm .cpu-warning")).toHaveLength(1);
   expect(warning.hidden).toBe(false); expect(document.getElementById("advBox")!.contains(warning)).toBe(false);
   expect(warning.textContent).toBe(cpuTranslations.de[1]);
   setLang("en"); updateCpuWarnings(); expect(warning.textContent).toBe(cpuTranslations.en[1]);
   input.value = "30"; updateCpuWarnings(); expect(warning.hidden).toBe(false);
   expect(input.closest(".slider")!.classList.contains("cpu-risk")).toBe(true);
-  expect(input.getAttribute("aria-describedby")).toBe("cpuIterationWarning");
+  expect(input.getAttribute("aria-describedby")).toBe("cpuGenerationWarning");
   input.value = "29"; updateCpuWarnings(); expect(warning.hidden).toBe(true);
   expect(input.closest(".slider")!.classList.contains("cpu-risk")).toBe(false);
   expect(input.hasAttribute("aria-describedby")).toBe(false);
