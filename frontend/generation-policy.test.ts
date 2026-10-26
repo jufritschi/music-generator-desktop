@@ -69,8 +69,10 @@ it("shows translated warnings outside collapsed advanced settings after policy f
   setLang("en"); updateCpuWarnings(); expect(warning.textContent).toBe(cpuTranslations.en[1]);
   input.value = "30"; updateCpuWarnings(); expect(warning.hidden).toBe(false);
   expect(input.closest(".slider")!.classList.contains("cpu-risk")).toBe(true);
+  expect(input.getAttribute("aria-describedby")).toBe("cpuIterationWarning");
   input.value = "29"; updateCpuWarnings(); expect(warning.hidden).toBe(true);
   expect(input.closest(".slider")!.classList.contains("cpu-risk")).toBe(false);
+  expect(input.hasAttribute("aria-describedby")).toBe(false);
 });
 it("offers three localized dialog actions, focuses the recommendation, translates live and cancels on Escape", async () => {
   const show = vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function(this: HTMLDialogElement) { this.open = true; });
