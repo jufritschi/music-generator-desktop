@@ -709,7 +709,7 @@ $("#btnSettings").onclick = async () => {
   const s = await backend.settings();
   settingsBefore = s;
   sf.expert_mode.checked = s.expert_mode;
-  for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format"]) sf[k].value = s[k];
+  for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format", "cpu_iteration_behavior"]) sf[k].value = s[k];
   sf.export_format.querySelector("option[value=mp3]").disabled = !s.mp3_available;
   $("#expHint").hidden = s.mp3_available;
   $("#settingsIntelHint").hidden = !s.cpu_only;
@@ -718,7 +718,7 @@ $("#btnSettings").onclick = async () => {
   dlg.showModal();
 };
 const saveSettings = async () => {
-  const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
+  const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, cpu_iteration_behavior: sf.cpu_iteration_behavior.value, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
   if (!Object.keys(values).length) return;
   try { await backend.saveSettings(values); }
   catch (err) { alert(err.message === "mp3_failed" ? t("mp3_failed") : modelErrorText(err, t)); $("#btnSettings").click(); }

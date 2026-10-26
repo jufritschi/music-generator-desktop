@@ -19,3 +19,118 @@ export const cpuTranslations: Record<Language, readonly [string, string, string,
 for (const [language, values] of Object.entries(cpuTranslations)) {
   Object.assign(I18N[language as Language], Object.fromEntries(keys.map((key, i) => [key, values[i]])));
 }
+
+export const cpuBehaviorKeys = ["cpu_remember", "cpu_remember_error", "cpu_behavior_label", "cpu_behavior_ask", "cpu_behavior_limit", "cpu_behavior_continue", "cpu_behavior_hint"] as const;
+export const cpuBehaviorTranslations: Record<Language, readonly string[]> = {
+  "de": [
+    "Diese Entscheidung merken",
+    "Die Entscheidung konnte nicht gespeichert werden. Bitte erneut versuchen oder das Häkchen entfernen, um nur dieses Mal zu starten.",
+    "Verhalten bei hohen CPU-Iterationen",
+    "Immer nachfragen",
+    "Automatisch auf maximal 30 begrenzen",
+    "Gewählte Iterationszahl ohne Rückfrage verwenden",
+    "Gilt bei mehr als 30 Iterationen auf CPU oder unbekanntem Rechengerät, auch beim Wiederholen. Rotmarkierung und Hinweise bleiben ab 30 sichtbar."
+  ],
+  "en": [
+    "Remember this decision",
+    "The decision could not be saved. Try again or clear the checkbox to start just this once.",
+    "Behavior at high CPU iteration counts",
+    "Always ask",
+    "Automatically limit to at most 30",
+    "Use selected iteration count without asking",
+    "Applies above 30 iterations on CPU or an unknown device, including retries. Red marking and hints remain visible from 30."
+  ],
+  "es": [
+    "Recordar esta decisión",
+    "No se pudo guardar la decisión. Inténtalo de nuevo o desmarca la casilla para iniciar solo esta vez.",
+    "Comportamiento con muchas iteraciones en CPU",
+    "Preguntar siempre",
+    "Limitar automáticamente a un máximo de 30",
+    "Usar las iteraciones elegidas sin preguntar",
+    "Se aplica a más de 30 iteraciones en CPU o dispositivo desconocido, también al reintentar. La marca roja y los avisos aparecen desde 30."
+  ],
+  "fr": [
+    "Mémoriser cette décision",
+    "La décision n’a pas pu être enregistrée. Réessayez ou décochez la case pour démarrer uniquement cette fois.",
+    "Comportement avec un nombre élevé d’itérations CPU",
+    "Toujours demander",
+    "Limiter automatiquement à 30 maximum",
+    "Utiliser le nombre choisi sans demander",
+    "S’applique au-delà de 30 itérations sur CPU ou périphérique inconnu, y compris aux nouvelles tentatives. Le rouge et les indications restent visibles dès 30."
+  ],
+  "it": [
+    "Ricorda questa decisione",
+    "Impossibile salvare la decisione. Riprova o deseleziona la casella per avviare solo questa volta.",
+    "Comportamento con molte iterazioni sulla CPU",
+    "Chiedi sempre",
+    "Limita automaticamente a un massimo di 30",
+    "Usa le iterazioni scelte senza chiedere",
+    "Si applica oltre 30 iterazioni su CPU o dispositivo sconosciuto, anche nei nuovi tentativi. Il rosso e gli avvisi restano visibili da 30."
+  ],
+  "pt": [
+    "Memorizar esta decisão",
+    "Não foi possível guardar a decisão. Tenta novamente ou desmarca a caixa para iniciar apenas desta vez.",
+    "Comportamento com muitas iterações na CPU",
+    "Perguntar sempre",
+    "Limitar automaticamente a um máximo de 30",
+    "Usar as iterações escolhidas sem perguntar",
+    "Aplica-se acima de 30 iterações na CPU ou num dispositivo desconhecido, incluindo novas tentativas. A marca vermelha e os avisos mantêm-se visíveis a partir de 30."
+  ],
+  "tr": [
+    "Bu kararı hatırla",
+    "Karar kaydedilemedi. Yeniden deneyin veya yalnızca bu sefer başlatmak için kutunun işaretini kaldırın.",
+    "Yüksek CPU yineleme sayılarında davranış",
+    "Her zaman sor",
+    "Otomatik olarak en fazla 30 ile sınırla",
+    "Seçilen yineleme sayısını sormadan kullan",
+    "CPU veya bilinmeyen aygıtta 30’dan fazla yinelemeye, yeniden denemeler dahil uygulanır. Kırmızı işaret ve uyarılar 30’dan itibaren görünür."
+  ],
+  "pl": [
+    "Zapamiętaj tę decyzję",
+    "Nie udało się zapisać decyzji. Spróbuj ponownie lub odznacz pole, aby uruchomić tylko tym razem.",
+    "Zachowanie przy dużej liczbie iteracji na CPU",
+    "Zawsze pytaj",
+    "Automatycznie ogranicz do najwyżej 30",
+    "Użyj wybranej liczby iteracji bez pytania",
+    "Dotyczy ponad 30 iteracji na CPU lub nieznanym urządzeniu, także przy ponawianiu. Czerwone oznaczenie i wskazówki są widoczne od 30."
+  ],
+  "ru": [
+    "Запомнить это решение",
+    "Не удалось сохранить решение. Повторите попытку или снимите флажок, чтобы начать только в этот раз.",
+    "Поведение при большом числе итераций на CPU",
+    "Всегда спрашивать",
+    "Автоматически ограничивать до 30",
+    "Использовать выбранное число итераций без вопроса",
+    "Применяется при более чем 30 итерациях на CPU или неизвестном устройстве, включая повторы. Красная отметка и подсказки видны начиная с 30."
+  ],
+  "uk": [
+    "Запам’ятати це рішення",
+    "Не вдалося зберегти рішення. Спробуйте ще раз або зніміть прапорець, щоб почати лише цього разу.",
+    "Поведінка за великої кількості ітерацій на CPU",
+    "Завжди запитувати",
+    "Автоматично обмежувати до 30",
+    "Використовувати вибрану кількість ітерацій без запиту",
+    "Застосовується за понад 30 ітерацій на CPU або невідомому пристрої, також під час повторів. Червона позначка й підказки видимі від 30."
+  ],
+  "ja": [
+    "この選択を記憶する",
+    "選択を保存できませんでした。再試行するか、チェックを外して今回だけ開始してください。",
+    "CPUの反復回数が多い場合の動作",
+    "毎回確認する",
+    "自動的に最大30回に制限する",
+    "選択した反復回数で確認せずに開始する",
+    "CPUまたは不明なデバイスで30回を超える場合に適用し、再試行も含みます。赤い表示と注意文は30回から表示されます。"
+  ],
+  "zh": [
+    "记住此决定",
+    "无法保存此决定。请重试，或取消勾选以仅在本次开始。",
+    "CPU 迭代次数较高时的行为",
+    "始终询问",
+    "自动限制为最多 30 次",
+    "直接使用所选迭代次数，不再询问",
+    "适用于 CPU 或未知设备上超过 30 次的迭代，包括重试。红色标记和提示从 30 次起显示。"
+  ]
+};
+for (const [language, values] of Object.entries(cpuBehaviorTranslations)) {
+  Object.assign(I18N[language as Language], Object.fromEntries(cpuBehaviorKeys.map((key, i) => [key, values[i]])));
+}

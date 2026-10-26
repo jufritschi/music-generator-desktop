@@ -14,14 +14,30 @@ again before each new generation or retry. A device/driver change between the
 probe and actual execution cannot be ruled out; this is an advisory UX guard,
 not a hardware reservation or a runtime estimate.
 
+## Red slider and remembered behavior
+
+At 30 steps the CPU/unknown slider fill, thumb and number turn red and the
+inline/persistent hints become visible. Below 30 both disappear; on GPU neither
+is shown. The confirmation starts only above 30.
+
+The unchecked-by-default “Remember this decision” checkbox persists either
+`limit_30` or `continue`. Cancel/Escape never store a choice. The settings selector
+also offers `ask` to restore prompting. These preferences survive restart, apply
+across models and retries, and can be changed during generation without an
+engine restart or rewriting unrelated settings. With `limit_30`, reduction
+happens at submission; the slider remains adjustable up to 200 and values below
+30 stay unchanged. Red marking/hints remain independent of the saved behavior.
+Save errors leave the dialog open and do not enqueue the request.
+
 ## Verification
 
-- Frontend: TypeScript/Vite build, ESLint, Vitest (117 tests).
+- Frontend: TypeScript/Vite build, ESLint, Vitest (130 tests).
 - Desktop scripts: 28 tests. Rust tests and Clippy with warnings denied.
 - Real browser check using production studio markup/modules and mocked Tauri
-  IPC: visible warning with Advanced collapsed, German CPU dialog, reduction
-  to 30 (including slider accessible value), English unknown-device dialog,
-  and Escape cancellation. The screenshots below use simulated CPU/unknown
+  IPC: visible warning with Advanced collapsed, German CPU dialog with remember checkbox, exact 29/30 red boundary,
+  remembered reduction on submission, retained high steps after choosing
+  continue in Settings, Settings persistence after reload, reset to ask, and
+  English unknown-device dialog. The screenshots below use simulated CPU/unknown
   policy responses; they do not claim a physical Intel or Windows test.
 - Native helper initialized CPU using the existing macOS arm64 engine at
   source revision `b7ba6d9ce2f19ca7627fb8f340032c3ebe8ae253`, without model weights.
@@ -56,6 +72,10 @@ Production UI with mocked device responses:
 
 ![CPU warning stays beside Generate with Advanced collapsed](warning-de.jpg)
 
-![German CPU confirmation](dialog-de.jpg)
+![Red CPU slider at exactly 30](slider-de.jpg)
+
+![CPU decision in settings](settings-de.jpg)
+
+![German CPU confirmation with remember checkbox](dialog-de.jpg)
 
 ![English confirmation when the synthesis device is unknown](dialog-unknown-en.jpg)

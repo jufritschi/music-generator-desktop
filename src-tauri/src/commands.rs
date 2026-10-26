@@ -36,11 +36,12 @@ pub async fn generation_policy(
 ) -> Result<crate::synthesis_policy::Policy> {
     let state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let selection = selection.unwrap_or(crate::catalog::Selection::from_settings(
-            &state.db.settings()?,
-        ));
+        let settings = state.db.settings()?;
+        let selection = selection.unwrap_or(crate::catalog::Selection::from_settings(&settings));
         let backend = state.synthesis_probe.inspect(&state.resources, refresh);
-        Ok(crate::synthesis_policy::policy(backend, &selection))
+        let mut policy = crate::synthesis_policy::policy(backend, &selection);
+        policy.cpu_iteration_behavior = settings.cpu_iteration_behavior;
+        Ok(policy)
     })
     .await
     .map_err(|e| message(e.to_string()))?

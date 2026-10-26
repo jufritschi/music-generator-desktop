@@ -222,6 +222,14 @@
       <span class="small" data-i18n="lm_dev_hint">Gilt ab der nächsten Generierung oder Analyse.</span>
       <span class="small" id="settingsIntelHint" data-i18n="desktop_intel_cpu_hint" hidden></span>
     </label>
+    <label class="field"><span class="lbl" data-i18n="cpu_behavior_label">Verhalten bei hohen CPU-Iterationen</span>
+      <select name="cpu_iteration_behavior" aria-describedby="cpuBehaviorHint">
+        <option value="ask" data-i18n="cpu_behavior_ask">Immer nachfragen</option>
+        <option value="limit_30" data-i18n="cpu_behavior_limit">Automatisch auf maximal 30 begrenzen</option>
+        <option value="continue" data-i18n="cpu_behavior_continue">Gewählte Iterationszahl ohne Rückfrage verwenden</option>
+      </select>
+      <span id="cpuBehaviorHint" class="small" data-i18n="cpu_behavior_hint"></span>
+    </label>
     <label class="field"><span class="lbl" data-i18n="timeout">Timeout (Min.)</span>
       <input name="timeout_minutes" type="number" min="1" max="600">
     </label>

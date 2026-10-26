@@ -26,9 +26,11 @@ pub async fn save_with_progress(
     authorize: impl FnOnce(&Path) -> Result<()>,
     progress: impl Fn(crate::import::ImportProgress) + Send + 'static,
 ) -> Result<Settings> {
-    if values.expert_only() {
+    if values.preferences_only() {
         return state.runtime.update_preferences(|| {
-            state.db.set_expert_mode(values.expert_mode.unwrap())?;
+            state
+                .db
+                .set_preferences(values.expert_mode, values.cpu_iteration_behavior)?;
             state.db.settings()
         });
     }

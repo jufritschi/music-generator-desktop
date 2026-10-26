@@ -1,8 +1,10 @@
+export type CpuIterationBehavior = "ask" | "limit_30" | "continue";
 export interface Settings {
   models_dir: string; songs_dir: string; lm_model: string; dit: "standard" | "xl";
   model_provider: string; synthesis_model: string;
   lm_device: "auto" | "cpu"; export_format: "wav" | "mp3"; mp3_available?: boolean;
   expert_mode: boolean;
+  cpu_iteration_behavior: CpuIterationBehavior;
   recommended_profiles?: ModelSelection[];
   cpu_only?: boolean;
   poll_interval: number; timeout_minutes: number; mode: "single" | "split";
@@ -67,7 +69,7 @@ export interface ModelCatalog {
   models_dir: string; busy: boolean;
 }
 
-export type SettingsPatch = Partial<Pick<Settings, "timeout_minutes" | "songs_dir" | "lm_device" | "export_format" | "expert_mode">>;
+export type SettingsPatch = Partial<Pick<Settings, "timeout_minutes" | "songs_dir" | "lm_device" | "export_format" | "expert_mode" | "cpu_iteration_behavior">>;
 
 export interface ImportRequest { root: string; songs_source: string | null; songs_dir: string; allow_partial: boolean }
 export interface MissingAudio { id: string; title: string; file: string | null }
@@ -81,6 +83,7 @@ export interface ImportProgress { phase: "checking" | "copying" | "committing"; 
 
 export interface GenerationPolicy {
   backend: "cpu" | "gpu" | "unknown";
+  cpu_iteration_behavior: CpuIterationBehavior;
   recommended_steps: number;
   defaults: GenerationFormPreferences;
 }

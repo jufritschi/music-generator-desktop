@@ -78,10 +78,26 @@ impl Database {
 
     /// Update only this preference; callers serialize admission with configuration writers.
     pub fn set_expert_mode(&self, enabled: bool) -> Result<()> {
-        self.lock().execute(
-            "INSERT INTO settings(key,value) VALUES('expert_mode',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            [if enabled { "true" } else { "false" }],
-        )?;
+        self.set_preferences(Some(enabled), None)
+    }
+
+    /// Update only provided preferences atomically, preserving unrelated configuration.
+    pub fn set_preferences(
+        &self,
+        expert: Option<bool>,
+        cpu: Option<crate::types::CpuIterationBehavior>,
+    ) -> Result<()> {
+        let mut con = self.lock();
+        let tx = con.transaction()?;
+        for (key, value) in [
+            ("expert_mode", expert.map(serde_json::to_value)),
+            ("cpu_iteration_behavior", cpu.map(serde_json::to_value)),
+        ] {
+            if let Some(value) = value {
+                tx.execute("INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, value?.to_string()])?;
+            }
+        }
+        tx.commit()?;
         Ok(())
     }
 

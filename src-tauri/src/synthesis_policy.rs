@@ -14,6 +14,7 @@ pub enum Backend {
 #[derive(Debug, Serialize)]
 pub struct Policy {
     pub backend: Backend,
+    pub cpu_iteration_behavior: crate::types::CpuIterationBehavior,
     pub recommended_steps: u32,
     pub defaults: GenerationFormPreferences,
 }
@@ -32,6 +33,7 @@ pub fn policy(backend: Backend, selection: &Selection) -> Policy {
     let recommended_steps = recommended_steps(backend, steps);
     Policy {
         backend,
+        cpu_iteration_behavior: Default::default(),
         recommended_steps,
         defaults: GenerationFormPreferences {
             inference_steps: recommended_steps,
