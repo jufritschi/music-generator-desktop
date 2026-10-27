@@ -14,6 +14,53 @@ fn request() -> GenerateRequest {
 }
 
 #[test]
+fn visible_prompts_and_combined_captions_survive_restart_for_every_variant() {
+    for (prompt, style, caption) in [
+        (
+            "A marching band in slow motion",
+            "",
+            "A marching band in slow motion",
+        ),
+        (
+            "A marching band in slow motion",
+            "trip hop, piano",
+            "trip hop, piano, A marching band in slow motion",
+        ),
+        (
+            "  Meine Idee: Regen über Berlin.  ",
+            "ambient",
+            "ambient, Meine Idee: Regen über Berlin.",
+        ),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let db = Database::open(root.path()).unwrap();
+        let ids = db
+            .enqueue(&GenerateRequest {
+                prompt: prompt.into(),
+                style: style.into(),
+                variants: 3,
+                ..Default::default()
+            })
+            .unwrap();
+        drop(db);
+        let db = Database::open(root.path()).unwrap();
+        assert_eq!(ids.len(), 3);
+        for id in ids {
+            let song = db.song(&id).unwrap();
+            assert_eq!(song.caption, caption);
+            assert_eq!(song.params["prompt"], prompt);
+            assert_eq!(song.params["style"], style);
+            assert_eq!(song.params["caption"], caption);
+            let (claimed_id, params) = db.claim_next().unwrap().unwrap();
+            assert_eq!(claimed_id, id);
+            assert_eq!(params["prompt"], prompt);
+            assert_eq!(params["caption"], caption);
+            db.fail(&id, "fixture").unwrap();
+        }
+    }
+}
+
+#[test]
 fn legacy_start_time_migration_preserves_saved_values_and_parameter_bytes() {
     let root = tempfile::tempdir().unwrap();
     let con = rusqlite::Connection::open(root.path().join("music.db")).unwrap();

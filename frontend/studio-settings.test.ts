@@ -161,6 +161,33 @@ it("keeps edited settings and generation inputs on failure and allows an explici
   hotkey(); await settle(); expect(calls("generate")).toHaveLength(1);
 });
 
+it.each(["", " \n\t "])("leaves a blank prompt (%j) unchanged while settings are open or saving", async prompt => {
+  let finish!: (value: Settings) => void;
+  mocks.save.mockReturnValueOnce(new Promise<Settings>(resolve => { finish = resolve; }));
+  field(generationForm(), "prompt").value = prompt;
+  const badge = document.querySelector<HTMLElement>("#promptGenerated")!;
+  await openSettings();
+  generate(); hotkey(); await settle();
+  expect(field(generationForm(), "prompt").value).toBe(prompt);
+  expect(badge.hidden).toBe(true);
+  field(settingsForm(), "lm_device").value = "cpu";
+  submitSettings(); await settle();
+  generate(); hotkey(); await settle();
+  expect(field(generationForm(), "prompt").value).toBe(prompt);
+  expect(badge.hidden).toBe(true);
+  expect(calls("generate")).toHaveLength(0);
+  finish({ ...settings, lm_device: "cpu" }); await settle();
+  expect(dialog().open).toBe(false);
+  expect(calls("generate")).toHaveLength(0);
+  hotkey(); await settle();
+  expect(field(generationForm(), "prompt").value.trim()).not.toBe("");
+  expect(badge.hidden).toBe(false);
+  expect(calls("generate")).toHaveLength(1);
+  expect(calls("generate")[0][1].request).toMatchObject({
+    duration: 30, style: "quiet piano", prompt: field(generationForm(), "prompt").value,
+  });
+});
+
 it("preserves the displayed form and next IPC payload through auto → cpu → auto", async () => {
   let original: Generation | undefined;
   for (const device of ["cpu", "auto"]) {
