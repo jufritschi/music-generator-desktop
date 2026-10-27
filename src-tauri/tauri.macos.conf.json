@@ -19,6 +19,7 @@
       },
       {
         "label": "main",
+        "acceptFirstMouse": true,
         "title": "Music Generator",
         "width": 1280,
         "height": 900,

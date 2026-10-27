@@ -1,4 +1,21 @@
 import { I18N } from "./i18n.js";
+import type { Language } from "./locales";
+
+export const xlMemoryHints: Record<Language, string> = {
+  de: "XL benötigt mehr Arbeitsspeicher und wird für diesen Computer nicht empfohlen.",
+  en: "XL needs more memory and is not recommended for this computer.",
+  es: "XL necesita más memoria y no se recomienda para este equipo.",
+  fr: "XL nécessite plus de mémoire et n’est pas recommandé pour cet ordinateur.",
+  it: "XL richiede più memoria e non è consigliato per questo computer.",
+  pt: "XL precisa de mais memória e não é recomendado para este computador.",
+  tr: "XL daha fazla bellek gerektirir ve bu bilgisayar için önerilmez.",
+  pl: "XL wymaga więcej pamięci i nie jest zalecany dla tego komputera.",
+  ru: "XL требует больше оперативной памяти и не рекомендуется для этого компьютера.",
+  uk: "XL потребує більше оперативної пам’яті й не рекомендовано для цього комп’ютера.",
+  ja: "XLにはより多くのメモリが必要なため、このコンピューターには推奨されません。",
+  zh: "XL 需要更多内存，不建议在这台电脑上使用。",
+};
+for (const [language, text] of Object.entries(xlMemoryHints)) Object.assign(I18N[language as Language], { creator_xl_ram_hint: text });
 
 const keys = ["title", "choose", "provider", "compatible", "planned", "installed", "missing", "verify", "memory", "download", "low_ram", "dependencies", "use", "download_use", "verify_use", "steps", "selected", "select_first", "memory_hint", "sampling_hint"] as const;
 export const modelTranslations: Record<string, readonly string[]> = {

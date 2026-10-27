@@ -44,9 +44,12 @@ export function generationModelAllowed(): boolean {
 
 function compact(): void {
   document.dispatchEvent(new Event("generation-model-changed"));
+  const xlAvailable = recommendations.some(profile => profile.synthesis.includes("-xl-"));
+  picker("creatorXlRamHint").hidden = xlAvailable;
   picker("expertModelWarning").hidden = generationModelAllowed();
   const options = creatorOptions(recommendations, chosen, expertMode);
   const select = picker<HTMLSelectElement>("creatorModel");
+  select.setAttribute("aria-describedby", xlAvailable ? "currentModels" : "currentModels creatorXlRamHint");
   select.replaceChildren(...options.map(option => {
     const node = new Option(option.label, option.value);
     node.disabled = option.disabled;

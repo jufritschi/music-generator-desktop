@@ -2,6 +2,7 @@ use crate::{
     db::Database,
     error::{message, Result},
 };
+use rusqlite::OptionalExtension;
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
@@ -10,6 +11,51 @@ use std::{
 mod staging;
 
 impl Database {
+    pub fn export_default_path(&self, filename: &str, fallback: &Path) -> Result<PathBuf> {
+        let stored: Option<String> = self
+            .lock()
+            .query_row(
+                "SELECT value FROM settings WHERE key='last_export_dir'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let directory = stored
+            .and_then(|value| serde_json::from_str::<PathBuf>(&value).ok())
+            .filter(|path| {
+                path.is_absolute()
+                    && match std::fs::metadata(path) {
+                        Ok(metadata) => metadata.is_dir(),
+                        // The native save panel can revisit a directory without a live file grant.
+                        Err(error) => error.kind() == std::io::ErrorKind::PermissionDenied,
+                    }
+            });
+        let filename: String = filename
+            .chars()
+            .map(|ch| {
+                if ch.is_control() || "\\/:*?\"<>|".contains(ch) {
+                    '_'
+                } else {
+                    ch
+                }
+            })
+            .collect();
+        let filename = if matches!(filename.trim(), "" | "." | "..") {
+            "Song"
+        } else {
+            &filename
+        };
+        Ok(directory.as_deref().unwrap_or(fallback).join(filename))
+    }
+
+    fn remember_export_directory(&self, directory: &Path) -> Result<()> {
+        self.lock().execute(
+            "INSERT INTO settings(key,value) VALUES('last_export_dir',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [serde_json::to_string(directory)?],
+        )?;
+        Ok(())
+    }
+
     pub fn export_audio(&self, sid: &str, destination: &Path) -> Result<()> {
         let song = self.song(sid)?;
         let path = song.path.ok_or_else(|| message("Song has no audio file"))?;
@@ -112,6 +158,14 @@ pub async fn export(
     destination: PathBuf,
     cancel: tokio_util::sync::CancellationToken,
 ) -> Result<()> {
+    if !destination.is_absolute() {
+        return Err(message("Select an absolute destination"));
+    }
+    if let Some(parent) = destination.parent() {
+        if let Err(error) = db.remember_export_directory(parent) {
+            tracing::warn!(%error, "Could not remember export directory");
+        }
+    }
     let mp3 = db.settings()?.export_format == "mp3";
     let mut sources = HashMap::new();
     if mp3 && (kind == "audio" || kind == "zip") {

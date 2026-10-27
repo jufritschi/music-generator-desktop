@@ -1,11 +1,10 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { dirname, join } from "@tauri-apps/api/path";
 import { backend } from "./backend";
 import { t } from "./i18n.js";
 
 export type FolderPurpose = "models" | "songs" | "import_root" | "import_songs";
 export type ExportPurpose = "export_audio" | "export_lyrics" | "export_zip";
-type Purpose = FolderPurpose | ExportPurpose | "audio_import";
+type Purpose = FolderPurpose | "audio_import";
 const storageKey = "dialog-folders:v1";
 
 function history(): Partial<Record<Purpose, string>> {
@@ -22,7 +21,7 @@ export function rememberDialogFolder(purpose: Purpose, directory: string): void 
 
 export async function dialogDirectory(purpose: Purpose, current = ""): Promise<string> {
   const remembered = history()[purpose];
-  return backend.dialogDirectory(current.trim() || null, typeof remembered === "string" ? remembered : null, purpose.startsWith("export_"));
+  return backend.dialogDirectory(current.trim() || null, typeof remembered === "string" ? remembered : null, false);
 }
 
 /** Persist access only for destinations; import sources need a session grant. */
@@ -36,9 +35,8 @@ export async function pickFolder(purpose: FolderPurpose, current = "", persistAc
 
 export async function saveExport(purpose: ExportPurpose, filename: string, extension: string): Promise<string | null> {
   try {
-    const defaultPath = await join(await dialogDirectory(purpose), filename);
+    const defaultPath = await backend.exportDefaultPath(filename);
     const chosen = await save({ defaultPath, title: t(`dialog_${purpose}`), filters: [{ name: extension.toUpperCase(), extensions: [extension] }] }).catch(dialogFailure);
-    if (chosen) rememberDialogFolder(purpose, await dirname(chosen));
     return chosen;
   } catch (error) { throw new Error(pathErrorText(error)); }
 }

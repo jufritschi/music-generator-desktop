@@ -66,6 +66,14 @@ On macOS, ZIP exports use Foundation's temporary item replacement directory so t
 
 ACE-Step shows **IT** for synthesis iterations and **VAR** for language-model variance/temperature. New forms start at 80 and 1.2; saved songs retain their previous values. More iterations take longer; higher variance gives freer output, lower variance follows the style and prompt more closely. Use the explicit ModelPicker recommendation for other families, such as Turbo.
 
+## Settings and export destinations
+
+The gear opens **Settings** on the first click and shows a loading state while reading preferences. On macOS, the main window also accepts that click when the app was inactive. Loading failures offer a retry in the dialog.
+
+The language-model device choice (**Automatic / CPU only**) is saved immediately, independently of other draft fields. It applies to the next generation or analysis and remains saved after **Cancel**. Other settings still require **Save**. If a device change fails, including while generation or analysis holds the engine, the previous choice remains selected and a localized message invites retrying. Accepted work is never interrupted by changing this preference.
+
+Audio, lyrics and ZIP save dialogs share the last confirmed export directory across app restarts. With no usable saved directory, they start in the operating system's Downloads directory, falling back to the home directory if Downloads cannot be resolved. Cancelling a save dialog leaves the preference unchanged; a confirmed location is remembered even if exporting fails. This separate SQLite preference (`last_export_dir`) neither changes the library location nor controls import/model-folder dialogs. Remembering a path grants no persistent folder access; macOS authorizes each export through its native save panel.
+
 ## Data and updates
 
 Songs can be 10 seconds to 10 minutes long. Above five minutes the form shows a localized time/memory warning. The language model may occasionally return extra audio codes; the outgoing synthesis payload is capped at the requested duration × 5 and at 3000 codes (600 seconds). This does not rewrite saved song parameters. Synthesis failures inspect only new lines in the combined stdout/stderr engine log; memory exhaustion and the model's maximum-length error get specific explanations. Earlier jobs' memory errors are ignored. Ten-minute generation remains untested on Intel Macs and 8 GiB machines; start with a short song on those systems.
@@ -194,11 +202,9 @@ Alle nativen Datei- und Ordnerdialoge verwenden diese Regeln:
 | Bisherige Installation | Aktuelle Importquelle bzw. vorgeschlagener Projektordner | Installationsquelle | Benutzerverzeichnis |
 | Bisheriger Songordner | Aktuelle bzw. erkannte Audioquelle | Bisheriger Songordner | Benutzerverzeichnis |
 | Audioanalyse | Zuletzt ausgewählter Audioordner | Audioimport | Benutzerverzeichnis |
-| Audioexport (WAV/MP3) | Zuletzt ausgewählter Audioexportordner | Audioexport | Downloads |
-| Lyrics als TXT | Zuletzt ausgewählter Textexportordner | Textexport | Downloads |
-| ZIP-Export | Zuletzt ausgewählter ZIP-Exportordner | ZIP-Export | Downloads |
+| Audioexport (WAV/MP3), Lyrics als TXT und ZIP | Zuletzt bestätigter Exportordner | Gemeinsamer Exportordner (`last_export_dir` in SQLite) | Downloads |
 
-Fehlt der aktuelle Pfad, folgt der zuletzt bestätigte Ordner dieses Zwecks, danach der Standard aus der Tabelle. Die Erinnerung wird lokal unter `dialog-folders:v1` gespeichert und bleibt über Neustarts erhalten. Bei einem neuen eingegebenen Pfad startet die Auswahl im nächsten vorhandenen übergeordneten Ordner. Gelöschte Erinnerungsordner werden übersprungen; fehlt Downloads, gilt das Benutzerverzeichnis. Abbrechen verändert weder Formular noch Erinnerung. Beschädigter oder gesperrter Einstellungsspeicher verhindert die Auswahl nicht. Exporte behalten ihre bisherigen Dateinamen und Formate.
+Fehlt der aktuelle Pfad, folgt der zuletzt bestätigte Ordner dieses Zwecks, danach der Standard aus der Tabelle. Ordner- und Audioimport-Erinnerungen werden lokal unter `dialog-folders:v1` gespeichert; die gemeinsame Export-Erinnerung liegt unabhängig davon in SQLite. Beide bleiben über Neustarts erhalten. Bei einem neuen eingegebenen Pfad startet die Auswahl im nächsten vorhandenen übergeordneten Ordner. Gelöschte Erinnerungsordner werden übersprungen; fehlt Downloads, gilt das Benutzerverzeichnis. Abbrechen verändert weder Formular noch Erinnerung. Beschädigter oder gesperrter Verlaufsspeicher verhindert die Auswahl nicht. Exporte behalten ihre bisherigen Dateinamen, lokalisierten Dialogtitel und Formate.
 
 Auf macOS sind diese Pfade nur Vorschläge, keine Zugriffsberechtigungen. Ein externer Ordner muss bei Bedarf über **Auswählen…** freigegeben werden. Zielordner erhalten weiterhin persistente Sandbox-Bookmarks; Importquellen und zur Analyse ausgewählte Audiodateien benötigen nur die aktuelle Sitzungsfreigabe. Ein verlorener Bookmark erfordert erneute native Auswahl.
 

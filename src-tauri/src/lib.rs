@@ -105,6 +105,7 @@ pub fn run() {
             commands::queue,
             commands::get_settings,
             commands::save_settings,
+            commands::export_default_path,
             commands::get_generation_form_preferences,
             commands::generation_policy,
             commands::save_generation_form_preferences,

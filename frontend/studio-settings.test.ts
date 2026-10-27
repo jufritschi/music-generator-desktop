@@ -97,6 +97,26 @@ it("blocks generation from the form and Alt+G while settings are open, and relea
   expect(calls("generate")).toHaveLength(1);
 });
 
+it("blocks all generation entrypoints while an immediate device save survives cancellation", async () => {
+  let finish!: (value: Settings) => void;
+  mocks.save.mockReturnValueOnce(new Promise<Settings>(resolve => { finish = resolve; }));
+  await openSettings();
+  const device = field(settingsForm(), "lm_device");
+  device.value = "cpu"; device.dispatchEvent(new Event("change", { bubbles: true })); await settle();
+  expect(calls("save_settings")[0][1]).toEqual({ values: { lm_device: "cpu" } });
+  submitSettings("cancel"); await settle();
+  expect(dialog().open).toBe(false);
+  generate(); hotkey();
+  button('[data-id="done"] [data-a="more"]').click();
+  button('[data-id="error"] [data-a="retry"]').click(); await settle();
+  expect(calls("generate")).toHaveLength(0);
+  expect(calls("retry_song")).toHaveLength(0);
+  finish({ ...settings, lm_device: "cpu" }); await settle();
+  expect(calls("generate")).toHaveLength(0);
+  hotkey(); await settle();
+  expect(calls("generate")).toHaveLength(1);
+});
+
 it("keeps settings modal until save succeeds, blocks duplicate saves and discards generation attempts", async () => {
   let finish!: (value: Settings) => void;
   mocks.save.mockReturnValueOnce(new Promise<Settings>(resolve => { finish = resolve; }));
