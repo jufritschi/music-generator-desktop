@@ -1,3 +1,7 @@
+# Überarbeiteter 0.1.2-Build: tatsächlich 200 Schritte — 2026-10-27
+
+Die [neue Abnahme](qa/iterations-200-0.1.2/README.md) erweitert den Enginekern auf tatsächlich 200 Schritte. Für Windows bleiben die gepinnten GGML-/GPU-DLLs unverändert, während ACE-Core und CLI-Werkzeuge neu gebaut werden. Frühere Aussagen in diesem historischen Prüfprotokoll, dass keine Enginebinärdatei verändert wurde, beziehen sich ausschließlich auf den dort dokumentierten damaligen Stand.
+
 # Issue #13 — backend evidence and Windows CUDA compatibility (2026-10-25)
 
 The pinned Windows archive `6013134` was downloaded and its SHA-256 matched `models/manifest.json`. Its CUDA module was inspected without executing Windows binaries: 144 fatbinary containers each contain PTX targets 7.5/8.0 (ISA 9.4) and native targets 8.6/8.9/12.0a/12.1a. The binary evidence, exact hashes, NVIDIA sources, driver/JIT limitations and manual acceptance procedure are recorded in [backend-status.md](backend-status.md). No engine binary was changed.

@@ -127,12 +127,12 @@ it("does not apply remembered CPU caps to GPU synthesis", async () => {
   expect(d.generate).toHaveBeenCalledWith(request); expect(d.ask).not.toHaveBeenCalled();
 });
 
-it("sends an effective 100-step GPU request instead of a historical 120 without a CPU warning", async () => {
+it.each([[120, 120], [200, 200], [201, 200]])("sends a %s-step GPU request with effective %s steps without a CPU warning", async (steps, expected) => {
   const d = deps(); d.policy.mockResolvedValue(policy("gpu"));
-  const legacy = Object.freeze({ ...request, inference_steps: 120 });
+  const legacy = Object.freeze({ ...request, inference_steps: steps });
   await createGenerationGate(d)(legacy);
-  expect(d.generate).toHaveBeenCalledWith({ ...legacy, inference_steps: 100 });
-  expect(d.ask).not.toHaveBeenCalled(); expect(legacy.inference_steps).toBe(120);
+  expect(d.generate).toHaveBeenCalledWith({ ...legacy, inference_steps: expected });
+  expect(d.ask).not.toHaveBeenCalled(); expect(legacy.inference_steps).toBe(steps);
 });
 
 it.each([["acestep-v15-sft-Q8_0.gguf", 50], ["acestep-v15-turbo-Q8_0.gguf", 8]] as const)("preserves legacy automatic engine sampling for %s when making a new request", async (synthesis, steps) => {

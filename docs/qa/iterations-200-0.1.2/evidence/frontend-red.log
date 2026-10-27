@@ -1,0 +1,276 @@
+
+> music-generator-desktop@0.1.2 test
+> vitest run song-sampling.test.ts form-preferences.test.ts generation-policy.test.ts song-results.test.ts song-result.test.ts
+
+
+ RUN  v5.0.5 /Users/frank/.codex/worktrees/252d/music-generator-desktop/frontend
+
+ ❯ song-sampling.test.ts (8 tests | 4 failed) 16ms
+   × uses the upstream defaults conservative defaults for an uninitialized generation form 3ms
+   × allows 120 requested steps up to the restored effective limit 120 without editing history 1ms
+   × allows 200 requested steps up to the restored effective limit 200 without editing history 0ms
+   × allows 201 requested steps up to the restored effective limit 200 without editing history 0ms
+ ❯ song-result.test.ts (17 tests | 1 failed) 6ms
+   × distinguishes verified new 200-step execution from the historical 100-step runtime 3ms
+ ❯ form-preferences.test.ts (11 tests | 2 failed) 90ms
+   × preserves an existing 120-step preference without increasing it or rewriting storage on load 7ms
+   × preserves an existing 200-step preference without increasing it or rewriting storage on load 4ms
+ ❯ song-results.test.ts (17 tests | 3 failed) 129ms
+   × reuses a historical 120-step request with its requested steps on the updated engine without changing history 8ms
+   × makes a new variant from 120 steps with current turbo=false using 120 effective steps 5ms
+   × makes a new variant from 200 steps with current turbo=false using 200 effective steps 2ms
+ ❯ generation-policy.test.ts (53 tests | 3 failed) 362ms
+   × sends a 120-step GPU request with effective 120 steps without a CPU warning 12ms
+   × sends a 200-step GPU request with effective 200 steps without a CPU warning 6ms
+   × sends a 201-step GPU request with effective 200 steps without a CPU warning 5ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  form-preferences.test.ts > preserves an existing 120-step preference without increasing it or rewriting storage on load
+AssertionError: expected '100' to be '120' // Object.is equality
+
+Expected: "120"
+Received: "100"
+
+ ❯ form-preferences.test.ts:115:42
+    113|   mocks.generationFormPreferences.mockResolvedValue(stored);
+    114|   const controller = createFormPreferences(form(), vi.fn()); await con…
+    115|   expect(field("inference_steps").value).toBe(String(steps));
+       |                                          ^
+    116|   expect(stored.inference_steps).toBe(steps);
+    117|   await controller.flush(); expect(mocks.saveGenerationFormPreferences…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  form-preferences.test.ts > preserves an existing 200-step preference without increasing it or rewriting storage on load
+AssertionError: expected '100' to be '200' // Object.is equality
+
+Expected: "200"
+Received: "100"
+
+ ❯ form-preferences.test.ts:115:42
+    113|   mocks.generationFormPreferences.mockResolvedValue(stored);
+    114|   const controller = createFormPreferences(form(), vi.fn()); await con…
+    115|   expect(field("inference_steps").value).toBe(String(steps));
+       |                                          ^
+    116|   expect(stored.inference_steps).toBe(steps);
+    117|   await controller.flush(); expect(mocks.saveGenerationFormPreferences…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  generation-policy.test.ts > sends a 120-step GPU request with effective 120 steps without a CPU warning
+AssertionError: expected "vi.fn()" to be called with arguments: [ { prompt: 'piano', …(5) } ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    {
+      "duration": 10,
+      "group_id": "old-group",
+-     "inference_steps": 120,
++     "inference_steps": 100,
+      "prompt": "piano",
+      "seed": 42,
+      "variants": 2,
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ generation-policy.test.ts:134:22
+    132|   const legacy = Object.freeze({ ...request, inference_steps: steps });
+    133|   await createGenerationGate(d)(legacy);
+    134|   expect(d.generate).toHaveBeenCalledWith({ ...legacy, inference_steps…
+       |                      ^
+    135|   expect(d.ask).not.toHaveBeenCalled(); expect(legacy.inference_steps)…
+    136| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  generation-policy.test.ts > sends a 200-step GPU request with effective 200 steps without a CPU warning
+ FAIL  generation-policy.test.ts > sends a 201-step GPU request with effective 200 steps without a CPU warning
+AssertionError: expected "vi.fn()" to be called with arguments: [ { prompt: 'piano', …(5) } ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    {
+      "duration": 10,
+      "group_id": "old-group",
+-     "inference_steps": 200,
++     "inference_steps": 100,
+      "prompt": "piano",
+      "seed": 42,
+      "variants": 2,
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ generation-policy.test.ts:134:22
+    132|   const legacy = Object.freeze({ ...request, inference_steps: steps });
+    133|   await createGenerationGate(d)(legacy);
+    134|   expect(d.generate).toHaveBeenCalledWith({ ...legacy, inference_steps…
+       |                      ^
+    135|   expect(d.ask).not.toHaveBeenCalled(); expect(legacy.inference_steps)…
+    136| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  song-result.test.ts > distinguishes verified new 200-step execution from the historical 100-step runtime
+AssertionError: expected 100 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 100
+
+ ❯ song-result.test.ts:18:115
+     16| it("distinguishes verified new 200-step execution from the historical …
+     17|   const params = Object.freeze({ inference_steps: 200 });
+     18|   expect(songIterations({ params, result_meta: { effective_inference_s…
+       |                                                                                                                   ^
+     19|   expect(songIterations({ params, result_meta: { effective_inference_s…
+     20|   expect(songIterations({ params, result_meta: { effective_inference_s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  song-results.test.ts > reuses a historical 120-step request with its requested steps on the updated engine without changing history
+AssertionError: expected '100' to be '120' // Object.is equality
+
+Expected: "120"
+Received: "100"
+
+ ❯ song-results.test.ts:85:42
+     83|   Object.freeze(song.params);
+     84|   row().querySelector<HTMLButtonElement>('[data-a="reuse"]')!.click();
+     85|   expect(field("inference_steps").value).toBe("120");
+       |                                          ^
+     86|   form().dispatchEvent(new SubmitEvent("submit", { bubbles: true, canc…
+     87|   expect(calls("generate")[0][1]).toMatchObject({ request: { inference…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  song-results.test.ts > makes a new variant from 120 steps with current turbo=false using 120 effective steps
+AssertionError: expected { request: { …(13) } } to match object { request: { …(2) } }
+(11 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -1,8 +1,8 @@
+  {
+    "request": {
+-     "inference_steps": 120,
++     "inference_steps": 100,
+      "model_selection": {
+        "language": "lm",
+        "provider": "ace-step",
+        "synthesis": "acestep-v15-sft-Q8_0.gguf",
+      },
+
+ ❯ song-results.test.ts:96:35
+     94|   Object.freeze(song.params); await show();
+     95|   row().querySelector<HTMLButtonElement>('[data-a="more"]')!.click(); …
+     96|   expect(calls("generate")[0][1]).toMatchObject({ request: { inference…
+       |                                   ^
+     97|   expect(song.params.inference_steps).toBe(steps);
+     98|   expect(document.querySelector(".cpu-dialog")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  song-results.test.ts > makes a new variant from 200 steps with current turbo=false using 200 effective steps
+AssertionError: expected { request: { …(13) } } to match object { request: { …(2) } }
+(11 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -1,8 +1,8 @@
+  {
+    "request": {
+-     "inference_steps": 200,
++     "inference_steps": 100,
+      "model_selection": {
+        "language": "lm",
+        "provider": "ace-step",
+        "synthesis": "acestep-v15-sft-Q8_0.gguf",
+      },
+
+ ❯ song-results.test.ts:96:35
+     94|   Object.freeze(song.params); await show();
+     95|   row().querySelector<HTMLButtonElement>('[data-a="more"]')!.click(); …
+     96|   expect(calls("generate")[0][1]).toMatchObject({ request: { inference…
+       |                                   ^
+     97|   expect(song.params.inference_steps).toBe(steps);
+     98|   expect(document.querySelector(".cpu-dialog")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  song-sampling.test.ts > uses the upstream defaults conservative defaults for an uninitialized generation form
+AssertionError: expected '100' to be '200' // Object.is equality
+
+Expected: "200"
+Received: "100"
+
+ ❯ song-sampling.test.ts:12:78
+     10|   expect(html.match(/<input name="lm_temperature"[^>]*value="([^"]+)"/…
+     11|   expect(html.match(/<input name="duration"[^>]*max="([^"]+)"/)?.[1]).…
+     12|   expect(html.match(/<input name="inference_steps"[^>]*max="([^"]+)"/)…
+       |                                                                              ^
+     13|   expect(html).toContain('id="lenHint" hidden aria-live="polite"');
+     14| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  song-sampling.test.ts > allows 120 requested steps up to the restored effective limit 120 without editing history
+AssertionError: expected 100 to be 120 // Object.is equality
+
+- Expected
++ Received
+
+- 120
++ 100
+
+ ❯ song-sampling.test.ts:60:51
+     58| it.each([[120, 120], [200, 200], [201, 200]])("allows %s requested ste…
+     59|   const params = Object.freeze({ inference_steps: steps, lm_temperatur…
+     60|   expect(samplingForSong(params).inference_steps).toBe(expected);
+       |                                                   ^
+     61|   expect(params.inference_steps).toBe(steps);
+     62| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  song-sampling.test.ts > allows 200 requested steps up to the restored effective limit 200 without editing history
+ FAIL  song-sampling.test.ts > allows 201 requested steps up to the restored effective limit 200 without editing history
+AssertionError: expected 100 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 100
+
+ ❯ song-sampling.test.ts:60:51
+     58| it.each([[120, 120], [200, 200], [201, 200]])("allows %s requested ste…
+     59|   const params = Object.freeze({ inference_steps: steps, lm_temperatur…
+     60|   expect(samplingForSong(params).inference_steps).toBe(expected);
+       |                                                   ^
+     61|   expect(params.inference_steps).toBe(steps);
+     62| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+
+ Test Files  5 failed (5)
+      Tests  13 failed | 93 passed (106)
+   Start at  15:55:03
+   Duration  707ms (environment 49%, tests 38%, transform 8%, import 4%, worker 1%)

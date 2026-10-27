@@ -1,7 +1,8 @@
 use super::{
-    client::{extract_audio, limit_audio_codes, EngineClient},
+    client::{limit_audio_codes, EngineClient},
     diagnostics::SynthesisLog,
     progress::Progress,
+    response::extract_generation,
 };
 use crate::error::{message, Error, Result};
 use serde_json::{json, Value};
@@ -61,7 +62,14 @@ impl EngineClient {
         }
         // LM metadata cannot silently change the synthesis iteration contract.
         enriched["inference_steps"] = json!(steps);
-        enriched["effective_inference_steps"] = json!(steps);
+        enriched
+            .as_object_mut()
+            .unwrap()
+            .remove("effective_inference_steps");
+        enriched
+            .as_object_mut()
+            .unwrap()
+            .remove("inference_steps_limit");
         if let Some(seed) = request.get("seed") {
             enriched["seed"] = seed.clone();
         }
@@ -80,8 +88,8 @@ impl EngineClient {
                 progress,
             )
             .await
-            .and_then(|(ctype, body)| extract_audio(&ctype, &body));
-        let (audio, extension) = result.map_err(|error| {
+            .and_then(|(ctype, body)| extract_generation(&ctype, &body));
+        let (audio, extension, metadata) = result.map_err(|error| {
             if matches!(error, Error::Cancelled | Error::EngineTimeout { .. }) {
                 return error;
             }
@@ -90,10 +98,42 @@ impl EngineClient {
                 .map(message)
                 .unwrap_or(error)
         })?;
+        record_iteration_evidence(steps, metadata.as_ref(), &mut enriched)?;
         let seconds = crate::audio_facts::duration(&audio)?;
         crate::audio_facts::record_duration(seconds, params, &mut enriched);
         Ok((audio, extension, enriched))
     }
+}
+
+/// Only the synthesis response can establish the updated runtime's actual execution contract.
+fn record_iteration_evidence(
+    requested: u32,
+    metadata: Option<&Value>,
+    result: &mut Value,
+) -> Result<()> {
+    use crate::generation_limits::{LEGACY_INFERENCE_STEPS_LIMIT, MAX_INFERENCE_STEPS};
+    let supported = metadata.and_then(|meta| meta["inference_steps_limit"].as_u64())
+        == Some(u64::from(MAX_INFERENCE_STEPS));
+    let limit = if supported {
+        MAX_INFERENCE_STEPS
+    } else {
+        LEGACY_INFERENCE_STEPS_LIMIT
+    };
+    let actual = metadata
+        .and_then(|meta| meta["effective_inference_steps"].as_u64())
+        .filter(|steps| (1..=u64::from(limit)).contains(steps));
+    if supported && actual.is_none() {
+        return Err(message(
+            "Engine did not confirm its effective iteration count",
+        ));
+    }
+    let actual = actual.unwrap_or_else(|| u64::from(requested.min(limit)));
+    result["inference_steps"] = json!(actual);
+    result["effective_inference_steps"] = json!(actual);
+    if supported {
+        result["inference_steps_limit"] = json!(limit);
+    }
+    Ok(())
 }
 
 impl EngineClient {

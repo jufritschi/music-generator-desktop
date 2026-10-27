@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { prepareTitle, recordTitle, verifyTitle } from "./prepare-title.mjs";
 import { cudaBuildOptions, prepareCuda } from "./prepare-cuda.mjs";
 import { copyCudaRuntime, relocateLinuxRuntime } from "./linux-runtime.mjs";
-import { architecture, download, engineRecipeHash, exists, files, hash, manifest, platform, recordHashes, root, run, target, verifyEngine } from "./common.mjs";
+import { checkoutEngineSource } from "./engine-source.mjs";
+import { prepareWindowsEngine } from "./prepare-windows-engine.mjs";
+import { verifyIterationContract } from "./engine-contract.mjs";
+import { architecture, engineRecipeHash, exists, files, hash, manifest, platform, recordHashes, root, run, target, verifyEngine } from "./common.mjs";
 
 export const engineFolder = path.join(root, "src-tauri/resources/engine");
 
@@ -18,10 +21,7 @@ export async function prepareEngine() {
   try {
     let built;
     if (platform === "linux" || platform === "macos") {
-      const sourceDir = path.join(work, "source");
-      await run("git", ["clone", "--no-checkout", source.repository, sourceDir]);
-      await run("git", ["checkout", source.source_revision || source.revision], { cwd: sourceDir });
-      await run("git", ["submodule", "update", "--init", "--recursive"], { cwd: sourceDir });
+      const sourceDir = await checkoutEngineSource(work, source);
       built = path.join(sourceDir, "build");
       if (platform === "macos") {
         // New libc++ headers expose float from_chars even when the deployment OS lacks it.
@@ -37,14 +37,9 @@ export async function prepareEngine() {
       await run("cmake", ["--build", built, "--config", "Release", "-j", "2"]);
       for (const file of await files(sourceDir)) if (/^(LICENSE|COPYING)/i.test(path.basename(file))) await cp(file, path.join(built, `LICENSE-${path.relative(sourceDir,file).replaceAll(path.sep,"-")}`));
     } else {
-      const archive = path.join(cache, `${platform}-${source.revision}.zip`);
-      await download(source.url, archive, source.sha256);
-      const unpacked = path.join(work, "unpacked"); await mkdir(unpacked);
-      await run(platform === "windows" ? "tar.exe" : "unzip", platform === "windows" ? ["-xf", archive, "-C", unpacked] : ["-q", archive, "-d", unpacked]);
-      const server = (await files(unpacked)).find((f) => path.basename(f) === (platform === "windows" ? "ace-server.exe" : "ace-server"));
-      if (!server) throw new Error("Downloaded archive has no engine executable");
-      built = path.dirname(server);
+      built = await prepareWindowsEngine(cache, work, source);
     }
+    const iterationLimit = await verifyIterationContract(path.join(built, platform === "windows" ? "ace-server.exe" : "ace-server"));
     await rm(engineFolder, { recursive: true, force: true }); await mkdir(engineFolder, { recursive: true }); await writeFile(path.join(engineFolder,".gitkeep"), "");
     // Preserve the complete runtime directory, including dynamically loaded GPU backends.
     for (const file of await files(built)) {
@@ -62,7 +57,7 @@ export async function prepareEngine() {
       // Relocation changes helper bytes after their initial provenance was written.
       await recordTitle();
     }
-    await recordHashes(engineFolder, { platform, arch: architecture, backend: target.backend, revision: source.revision, source: source.url || source.repository, source_revision: source.source_revision || source.revision, archive_sha256: source.sha256 || null, sandbox_patch_sha256: platform === "macos" ? await hash(path.join(root,"scripts/desktop/engine-sandbox.mm")) : null, recipe_sha256: await engineRecipeHash() });
+    await recordHashes(engineFolder, { platform, arch: architecture, backend: target.backend, revision: source.revision, source: source.url || source.repository, source_revision: source.source_revision || source.revision, archive_sha256: source.sha256 || null, max_inference_steps:iterationLimit, sandbox_patch_sha256: platform === "macos" ? await hash(path.join(root,"scripts/desktop/engine-sandbox.mm")) : null, recipe_sha256: await engineRecipeHash() });
     await verifyEngine(engineFolder);
     console.log(`Prepared ${platform} engine ${source.revision}.`);
   } finally { await rm(work, { recursive: true, force: true }); }

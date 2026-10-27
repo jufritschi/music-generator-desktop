@@ -1,4 +1,5 @@
-export const MAX_INFERENCE_STEPS = 100;
+export const MAX_INFERENCE_STEPS = 200;
+export const LEGACY_INFERENCE_STEPS_LIMIT = 100;
 
 /** Match the pinned engine's legacy defaults and effective diffusion-step limits. */
 export function effectiveInferenceSteps(steps?: number | null, synthesis = ""): number {

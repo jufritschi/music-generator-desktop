@@ -1,0 +1,38 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.43s
+     Running tests/audio_duration.rs (src-tauri/target/debug/deps/audio_duration-566a1871896c8dbb)
+
+running 12 tests
+test invalid_audio_is_rejected_instead_of_becoming_a_finished_song ... ok
+test failed_optional_retry_preserves_the_original_audio_with_an_honest_warning ... ok
+test an_incomplete_new_synthesis_contract_cannot_be_saved_as_a_verified_result ... ok
+test retry_limit_keeps_the_longer_audio_and_never_changes_music_seed_or_effective_steps ... ok
+test lm_shortfall_gets_one_distinct_seed_retry_before_a_single_synthesis ... ok
+test actual_wav_duration_replaces_the_lm_claim_without_rewriting_the_request ... ok
+test empty_lm_codes_retry_once_then_fail_clearly_if_both_attempts_are_empty ... ok
+test only_actual_synthesis_result_evidence_can_confirm_two_hundred_iterations ... ok
+test cancellation_during_the_retry_cancels_that_job_and_never_synthesizes ... ok
+test overproduction_is_capped_and_normal_duration_rounding_does_not_retry ... ok
+test optional_retry_budget_includes_waiting_for_the_job_id ... ok
+test optional_retry_respects_remaining_lm_time_and_cancels_its_timed_out_job ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/generation_limits.rs (src-tauri/target/debug/deps/generation_limits-84e0c720df050be2)
+
+running 5 tests
+test historical_metadata_keeps_the_old_cap_without_explicit_new_runtime_evidence ... ok
+test new_requests_above_two_hundred_are_rejected_without_creating_songs ... ok
+test retry_keeps_historical_requests_while_execution_uses_the_supported_limit ... ok
+test new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute ... ok
+test legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_models ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/historical_audio.rs (src-tauri/target/debug/deps/historical_audio-9ba8c0fb848f36a5)
+
+running 2 tests
+test historical_results_show_measured_audio_and_effective_steps_without_rewriting_history ... ok
+test missing_or_damaged_historical_audio_does_not_present_the_request_as_measured_duration ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s

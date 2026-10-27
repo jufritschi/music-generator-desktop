@@ -108,13 +108,13 @@ it("uses current model and device defaults on explicit reset without replacing s
   expect(mocks.saveGenerationFormPreferences).toHaveBeenLastCalledWith({ ...DEFAULT_FORM_PREFERENCES, inference_steps: 8 });
 });
 
-it("restores a stale 120-step preference as 100 without rewriting storage merely on load", async () => {
-  const stored = Object.freeze({ ...custom, inference_steps: 120 });
+it.each([100, 120, 200])("preserves an existing %s-step preference without increasing it or rewriting storage on load", async steps => {
+  const stored = Object.freeze({ ...custom, inference_steps: steps });
   mocks.generationFormPreferences.mockResolvedValue(stored);
   const controller = createFormPreferences(form(), vi.fn()); await controller.ready;
-  expect(field("inference_steps").value).toBe("100");
-  expect(stored.inference_steps).toBe(120);
+  expect(field("inference_steps").value).toBe(String(steps));
+  expect(stored.inference_steps).toBe(steps);
   await controller.flush(); expect(mocks.saveGenerationFormPreferences).not.toHaveBeenCalled();
   field("duration").value = "300"; controller.capture(); await controller.flush();
-  expect(mocks.saveGenerationFormPreferences).toHaveBeenLastCalledWith({ ...stored, inference_steps: 100, duration: 300 });
+  expect(mocks.saveGenerationFormPreferences).toHaveBeenLastCalledWith({ ...stored, duration: 300 });
 });

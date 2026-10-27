@@ -32,6 +32,8 @@ struct Options {
     retry_error: bool,
     malformed_audio: bool,
     retry_post_delay_ms: u64,
+    synthesis_limit: Option<u32>,
+    synthesis_steps: Option<u32>,
 }
 
 async fn server(counts: Vec<usize>) -> (EngineClient, Arc<Script>, tokio::task::JoinHandle<()>) {
@@ -124,21 +126,28 @@ async fn server_with(
                             serde_json::to_vec(&json!({
                                 "audio_codes":vec!["7";count].join(","), "duration":10,
                                 "lm_seed":request["lm_seed"].as_u64().unwrap_or(4122037654),
-                            "inference_steps":999,"seed":999
+                            "inference_steps":999,"seed":999,
+                            "effective_inference_steps":200,"inference_steps_limit":200
                             }))
                             .unwrap(),
                         );
                     }
                     let request = script.synth.lock().unwrap().last().unwrap().clone();
                     let codes = request["audio_codes"].as_str().unwrap().split(',').count();
-                    (
-                        [(CONTENT_TYPE, "audio/wav")],
-                        if script.options.malformed_audio {
+                    let audio = if script.options.malformed_audio {
                             b"RIFFtest".to_vec()
                         } else {
                             wav::tone(codes as f64 / 5.0)
-                        },
-                    )
+                        };
+                    if let Some(limit) = script.options.synthesis_limit {
+                        let metadata = json!([{"inference_steps_limit":limit,"effective_inference_steps":script.options.synthesis_steps}]);
+                        let mut body = format!("--result\r\nContent-Type: application/json\r\n\r\n{metadata}\r\n--result\r\nContent-Type: audio/wav\r\n\r\n").into_bytes();
+                        body.extend(audio);
+                        body.extend(b"\r\n--result--\r\n");
+                        ([(CONTENT_TYPE, "multipart/mixed; boundary=result")], body)
+                    } else {
+                        ([(CONTENT_TYPE, "audio/wav")], audio)
+                    }
                 }
             })
             .post(move || {
@@ -183,6 +192,70 @@ async fn actual_wav_duration_replaces_the_lm_claim_without_rewriting_the_request
     assert_eq!(meta["requested_duration"], 10.0);
     assert_eq!(meta["duration_warning"]["code"], "short_audio");
     assert_eq!(params, original);
+}
+
+#[tokio::test]
+async fn only_actual_synthesis_result_evidence_can_confirm_two_hundred_iterations() {
+    for (limit, actual, expected) in [
+        (Some(200), Some(200), 200),
+        (Some(200), Some(120), 120),
+        (None, None, 100),
+    ] {
+        let (client, script, task) = server_with(
+            vec![50],
+            Options {
+                synthesis_limit: limit,
+                synthesis_steps: actual,
+                ..Default::default()
+            },
+        )
+        .await;
+        let (_, _, meta) = client
+            .generate(
+                &json!({"duration":10,"inference_steps":200,"inference_steps_limit":200}),
+                "lm.gguf",
+                "sft.gguf",
+                &CancellationToken::new(),
+                |_| {},
+            )
+            .await
+            .unwrap();
+        task.abort();
+        assert_eq!(meta["effective_inference_steps"], expected);
+        assert_eq!(meta["inference_steps"], expected);
+        assert_eq!(
+            meta.get("inference_steps_limit").and_then(Value::as_u64),
+            limit.map(u64::from)
+        );
+        let request = &script.synth.lock().unwrap()[0];
+        assert_eq!(request["inference_steps"], 200);
+        assert!(request.get("inference_steps_limit").is_none());
+        assert!(request.get("effective_inference_steps").is_none());
+    }
+}
+
+#[tokio::test]
+async fn an_incomplete_new_synthesis_contract_cannot_be_saved_as_a_verified_result() {
+    let (client, _script, task) = server_with(
+        vec![50],
+        Options {
+            synthesis_limit: Some(200),
+            synthesis_steps: None,
+            ..Default::default()
+        },
+    )
+    .await;
+    let result = client
+        .generate(
+            &json!({"duration":10,"inference_steps":200}),
+            "lm.gguf",
+            "sft.gguf",
+            &CancellationToken::new(),
+            |_| {},
+        )
+        .await;
+    task.abort();
+    assert!(result.unwrap_err().to_string().contains("did not confirm"));
 }
 
 #[tokio::test]
@@ -231,8 +304,8 @@ async fn retry_limit_keeps_the_longer_audio_and_never_changes_music_seed_or_effe
     let synth = script.synth.lock().unwrap();
     assert_eq!(synth.len(), 1);
     assert_eq!(synth[0]["seed"], 42);
-    assert_eq!(synth[0]["inference_steps"], 100);
-    assert_eq!(script.lm.lock().unwrap()[0]["inference_steps"], 100);
+    assert_eq!(synth[0]["inference_steps"], 120);
+    assert_eq!(script.lm.lock().unwrap()[0]["inference_steps"], 120);
     assert_eq!(meta["effective_inference_steps"], 100);
     assert_eq!(meta["inference_steps"], 100);
     assert_eq!(meta["duration"], 5.6);

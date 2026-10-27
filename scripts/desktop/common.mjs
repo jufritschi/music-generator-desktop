@@ -53,7 +53,10 @@ export async function recordHashes(folder, metadata) {
 
 export async function engineRecipeHash(buildTarget = target) {
   const digest = createHash("sha256");
-  for (const name of ["prepare-engine.mjs", "targets.mjs", "patches/acestep-macos-compat.patch"]) digest.update(await readFile(path.join(root, "scripts/desktop", name)));
+  for (const name of ["prepare-engine.mjs", "engine-source.mjs", "engine-contract.mjs", "engine-generation-limits.h", "targets.mjs", "patches/acestep-macos-compat.patch", "patches/acestep-iterations.patch"]) digest.update(await readFile(path.join(root, "scripts/desktop", name)));
+  if (buildTarget.platform === "windows") {
+    for (const name of ["prepare-windows-engine.mjs", "windows-ggml-imports.cmake", "patches/acestep-iterations-windows.patch"]) digest.update(await readFile(path.join(root,"scripts/desktop",name)));
+  }
   if (buildTarget.platform === "linux") {
     digest.update(buildTarget.backend);
     for (const name of ["scripts/desktop/linux-runtime.mjs", "scripts/desktop/prepare-cuda.mjs", "models/cuda-linux.json"]) digest.update(await readFile(path.join(root, name)));
@@ -65,9 +68,10 @@ export async function verifyEngine(folder, buildTarget = target) {
   const buildPlatform = buildTarget.platform;
   const provenance = JSON.parse(await readFile(path.join(folder, "VERSION.desktop.json"), "utf8"));
   if (provenance.platform !== buildPlatform || provenance.arch !== buildTarget.arch || provenance.revision !== manifest.engines[buildPlatform].revision) throw new Error("Engine belongs to a different platform or revision");
+  if (provenance.max_inference_steps !== manifest.engines[buildPlatform].max_inference_steps) throw new Error("Engine iteration limit requires rebuilding");
   if (buildPlatform === "macos" && provenance.sandbox_patch_sha256 !== await hash(path.join(root,"scripts/desktop/engine-sandbox.mm"))) throw new Error("Engine sandbox bridge needs rebuilding");
   if (buildPlatform === "linux" && provenance.backend !== buildTarget.backend) throw new Error("Engine Linux backend changed");
-  if (["macos", "linux"].includes(buildPlatform) && provenance.recipe_sha256 !== await engineRecipeHash(buildTarget)) throw new Error("Engine build recipe changed");
+  if (provenance.recipe_sha256 !== await engineRecipeHash(buildTarget)) throw new Error("Engine build recipe changed");
   const executable = buildPlatform === "windows" ? "ace-server.exe" : "ace-server";
   if (!provenance.files[executable]) throw new Error("Engine executable is missing from checksums");
   if (Object.keys(provenance.files).some(file => file.startsWith("heartmula/"))) throw new Error("Retired provider resources must be removed");

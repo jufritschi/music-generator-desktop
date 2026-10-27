@@ -1,0 +1,4 @@
+load_backend: loaded CPU backend from /var/folders/0k/n0yq1d757fj2g7jx74sxtxpc0000gn/T/Music Generator portable test cC3aEm/Music Generator.app/Contents/Resources/engine/libggml-cpu.so
+App Sandbox: supervised MP3 export and ZIP passed; original WAV preserved.
+App Sandbox: native title runtime starts; unselected file access denied.
+App Sandbox: unselected read/write denied; inherited engine read denied; container storage, loopback health and supervisor shutdown passed.

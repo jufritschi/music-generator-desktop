@@ -13,6 +13,16 @@ it("uses locally verified effective steps and bounds only the requested fallback
   expect(params.inference_steps).toBe(120);
 });
 
+it("distinguishes verified new 200-step execution from the historical 100-step runtime", () => {
+  const params = Object.freeze({ inference_steps: 200 });
+  expect(songIterations({ params, result_meta: { effective_inference_steps: 200, inference_steps_limit: 200 } })).toBe(200);
+  expect(songIterations({ params, result_meta: { effective_inference_steps: 120, inference_steps_limit: 200 } })).toBe(120);
+  expect(songIterations({ params, result_meta: { effective_inference_steps: 100 } })).toBe(100);
+  expect(songIterations({ params, result_meta: { effective_inference_steps: 120 } })).toBe(100);
+  expect(songIterations({ params, result_meta: { inference_steps: 120 } })).toBe(100);
+  expect(params.inference_steps).toBe(200);
+});
+
 it("does not invent an executed step count for an automatic legacy request with an unknown model", () => {
   expect(songIterations({ params: { inference_steps: 0 }, result_meta: {} })).toBeNull();
   expect(songIterations({ params: {}, result_meta: {} })).toBeNull();

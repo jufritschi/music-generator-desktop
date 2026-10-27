@@ -9,6 +9,7 @@ import path from "node:path";
 import { architecture, exists, files, hash, platform, root, run, target, verifyEngine } from "./common.mjs";
 import { verifyMacSandbox } from "./verify-macos-sandbox.mjs";
 import { verifyLinuxRuntime } from "./linux-runtime.mjs";
+import { verifyIterationContract } from "./engine-contract.mjs";
 
 function startupLocation(app) {
   return JSON.parse(execFileSync(app, ["--startup-location-probe"], { encoding: "utf8", timeout: 15000 }));
@@ -56,6 +57,7 @@ try {
   if(platform==="linux")await verifyLinuxRuntime(engine,target.backend,path.join(work,"squashfs-root"));
   const app = extracted.find(file => path.basename(file) === (platform === "windows" ? "Music Generator.exe" : "music-generator"));
   assert(app, "Application executable is missing");
+  await verifyIterationContract(path.join(engine,platform === "windows" ? "ace-server.exe" : "ace-server"),app);
   const probe = JSON.parse(execFileSync(app, ["--synthesis-backend-probe", engine, "--cpu"], { cwd: engine, encoding: "utf8", timeout: 15000 }).trim().split(/\r?\n/).at(-1));
   assert.equal(probe, "cpu", "Relocated model-free backend probe must initialize the CPU runtime");
   if (platform === "macos") await run("codesign", ["--verify", "--deep", "--strict", path.dirname(path.dirname(path.dirname(app)))]);

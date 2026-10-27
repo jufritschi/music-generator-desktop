@@ -1,0 +1,48 @@
+✔ native runtime cache keeps both Linux backends and Mac architectures separate (6.065875ms)
+✔ cross-release cache rejects expired, failed, foreign and unrelated workflow artifacts (0.372333ms)
+▶ portable Linux runtime
+  ✔ locates shared CUDA libraries from the engine, title helper and nested backends (0.402583ms)
+  ✔ rejects missing libraries, driver stubs and reliance on the builder's CUDA installation (0.715667ms)
+  ✔ copies only redistributable runtime SONAMEs and their licenses (12.771459ms)
+✔ portable Linux runtime (14.911ms)
+✔ derives import names from native DLL exports without copying ordinals or forwarded destinations (0.873542ms)
+✔ rejects missing or incompatible DLL exports instead of building an unverified import library (0.670209ms)
+✔ rejects a cached engine from the other Linux variant or an older build recipe (20.611084ms)
+✔ rejects the old Windows iteration limit even when target and file hashes match (2.317583ms)
+✔ publishes exactly the expected macos-arm64 files, including checksums (12.55675ms)
+✔ publishes exactly the expected macos-x64 files, including checksums (3.320084ms)
+✔ publishes exactly the expected windows-x64 files, including checksums (1.842917ms)
+✔ publishes exactly the expected linux-x64 files, including checksums (1.693709ms)
+✔ publishes exactly the expected linux-x64-cuda files, including checksums (1.924625ms)
+✔ platform asset sets contain seven distinct bundles and seven checksums (0.610708ms)
+✔ requires matching npm, Cargo and Tauri versions and an exact v-prefixed tag (1.053166ms)
+✔ rejects missing, unexpected and corrupt files before contacting GitHub (5.193541ms)
+✔ rejects directories and symlinks masquerading as release assets (2.918334ms)
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip.sha256
+✔ skips identical assets and preserves unrelated platforms (1.721083ms)
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip.sha256
+✔ hashes existing assets when GitHub has no digest (2.2495ms)
+✔ a conflicting existing checksum blocks every upload, including missing bundles (1.201875ms)
+Already uploaded: Music-Generator-0.1.0-macos-arm64.dmg
+✔ retries a partial upload without overwriting its successful files (2.6035ms)
+✔ rejects drafts and an unexpected release tag before uploading (1.376083ms)
+▶ native desktop engine targets
+  ✔ builds a portable Intel CPU engine with the same deployment target as its app (0.543209ms)
+  ✔ targets macOS Sonoma on Apple Silicon with Metal acceleration (0.099417ms)
+  ✔ rejects unsupported architectures (0.584167ms)
+  ✔ keeps the default app bundle minimum aligned with its Apple Silicon engine (1.718375ms)
+  ✔ can fingerprint every engine build input, including the compatibility patch (1.258583ms)
+  ✔ keeps the existing Vulkan artifact and excludes CUDA from its engines (0.092458ms)
+  ✔ builds a separate CUDA artifact without requiring a GPU on the build host (0.059667ms)
+  ✔ rejects an unknown Linux backend rather than reusing the Vulkan cache (0.046ms)
+✔ native desktop engine targets (5.160083ms)
+ℹ tests 31
+ℹ suites 2
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 120.047083

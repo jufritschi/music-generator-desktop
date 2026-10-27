@@ -1,0 +1,14 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.55s
+     Running unittests src/lib.rs (src-tauri/target/debug/deps/music_generator-84161b2af6327d80)
+
+running 7 tests
+test form_preferences::tests::active_generation_does_not_block_or_get_cancelled_by_preferences ... ok
+test form_preferences::tests::new_preferences_cannot_persist_iterations_above_the_engine_limit ... ok
+test form_preferences::tests::invalid_writes_do_not_replace_saved_preferences ... ok
+test form_preferences::tests::saved_iteration_values_within_two_hundred_remain_unchanged ... ok
+test form_preferences::tests::missing_damaged_and_partially_invalid_values_use_defaults ... ok
+test form_preferences::tests::device_defaults_fill_only_missing_or_invalid_values ... ok
+test form_preferences::tests::preferences_survive_reopening_and_unrelated_settings_writes ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 0.01s

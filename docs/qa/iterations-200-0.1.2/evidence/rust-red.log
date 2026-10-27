@@ -1,0 +1,51 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.03s
+     Running tests/generation_limits.rs (src-tauri/target/debug/deps/generation_limits-84e0c720df050be2)
+
+running 4 tests
+test historical_metadata_keeps_the_old_cap_without_explicit_new_runtime_evidence ... FAILED
+test new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute ... FAILED
+test retry_keeps_historical_requests_while_execution_uses_the_supported_limit ... FAILED
+test legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_models ... FAILED
+
+failures:
+
+---- historical_metadata_keeps_the_old_cap_without_explicit_new_runtime_evidence stdout ----
+
+thread 'historical_metadata_keeps_the_old_cap_without_explicit_new_runtime_evidence' (100656475) panicked at tests/generation_limits.rs:102:9:
+assertion `left == right` failed
+  left: Number(120)
+ right: 100
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute stdout ----
+
+thread 'new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute' (100656477) panicked at tests/generation_limits.rs:16:9:
+assertion `left == right` failed
+  left: Number(100)
+ right: 101
+
+---- retry_keeps_historical_requests_while_execution_uses_the_supported_limit stdout ----
+
+thread 'retry_keeps_historical_requests_while_execution_uses_the_supported_limit' (100656478) panicked at tests/generation_limits.rs:82:5:
+assertion `left == right` failed
+  left: 100
+ right: 120
+
+---- legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_models stdout ----
+
+thread 'legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_models' (100656476) panicked at tests/generation_limits.rs:50:5:
+assertion `left == right` failed
+  left: 100
+ right: 101
+
+
+failures:
+    historical_metadata_keeps_the_old_cap_without_explicit_new_runtime_evidence
+    legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_models
+    new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute
+    retry_keeps_historical_requests_while_execution_uses_the_supported_limit
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test generation_limits`

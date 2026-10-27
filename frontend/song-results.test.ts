@@ -67,6 +67,22 @@ it("shows locally verified effective iterations ahead of historical request and 
   expect(song.params.inference_steps).toBe(120);
 });
 
+it("shows new verified 200-step execution while retaining the old 100-step result for historical 120 requests", async () => {
+  song.params.inference_steps = 200;
+  song.result_meta = { effective_inference_steps: 200, inference_steps_limit: 200 }; await show();
+  expect(row().querySelector(".m")!.textContent).toContain("200IT");
+  song.params.inference_steps = 120;
+  song.result_meta = { inference_steps: 120 }; await show();
+  expect(row().querySelector(".m")!.textContent).toContain("100IT");
+  expect(song.params.inference_steps).toBe(120);
+});
+
+it.each(["queued", "running", "error"] as const)("shows the requested 200-step settings for a %s song before verified result metadata exists", async status => {
+  song.status = status; song.params.inference_steps = 200; song.result_meta = null; await show();
+  expect(row().querySelector(".m")!.textContent).toContain("200IT");
+  expect(song.params.inference_steps).toBe(200);
+});
+
 it.each([["short_audio", 22, "Kürzer als angefordert: 0:22 statt 0:30."], ["long_audio", 44, "Länger als angefordert: 0:44 statt 0:30."]] as const)("shows a clear inline %s warning from measured audio without opening a modal", async (code, actual, text) => {
   song.result_meta = { duration: actual, duration_source: "wav", requested_duration: 30, duration_warning: { code, requested_seconds: 30, actual_seconds: actual } }; await show();
   expect(row().querySelector(".duration-warning")?.textContent).toBe(text);
@@ -79,16 +95,16 @@ it("shows measured 29.8 seconds with the player's whole-second clock without a s
   expect(row().querySelector(".duration-warning")).toBeNull();
 });
 
-it("reuses a historical 120-step song as an effective 100-step form and request without changing history", async () => {
+it("reuses a historical 120-step request with its requested steps on the updated engine without changing history", async () => {
   Object.freeze(song.params);
   row().querySelector<HTMLButtonElement>('[data-a="reuse"]')!.click();
-  expect(field("inference_steps").value).toBe("100");
+  expect(field("inference_steps").value).toBe("120");
   form().dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true })); await settle();
-  expect(calls("generate")[0][1]).toMatchObject({ request: { inference_steps: 100 } });
+  expect(calls("generate")[0][1]).toMatchObject({ request: { inference_steps: 120 } });
   expect(song.params.inference_steps).toBe(120);
 });
 
-it.each([[120, false, 100], [0, false, 50], [0, true, 8], [undefined, true, 8]] as const)("makes a new variant from %s steps with current turbo=%s using %s effective steps", async (steps, turbo, expected) => {
+it.each([[120, false, 120], [200, false, 200], [0, false, 50], [0, true, 8], [undefined, true, 8]] as const)("makes a new variant from %s steps with current turbo=%s using %s effective steps", async (steps, turbo, expected) => {
   song.params.inference_steps = steps;
   if (turbo) mocks.current = { ...standard, synthesis: "acestep-v15-turbo-Q8_0.gguf" };
   Object.freeze(song.params); await show();

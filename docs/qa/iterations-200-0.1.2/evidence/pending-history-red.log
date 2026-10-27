@@ -1,0 +1,37 @@
+
+> music-generator-desktop@0.1.2 test
+> vitest run song-results.test.ts -t requested 200-step settings
+
+
+ RUN  v5.0.5 /Users/frank/.codex/worktrees/252d/music-generator-desktop/frontend
+
+ ❯ song-results.test.ts (21 tests | 3 failed | 18 skipped) 69ms
+   × shows the requested 200-step settings for a queued song before verified result metadata exists 5ms
+   × shows the requested 200-step settings for a running song before verified result metadata exists 4ms
+   × shows the requested 200-step settings for a error song before verified result metadata exists 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  song-results.test.ts > shows the requested 200-step settings for a queued song before verified result metadata exists
+ FAIL  song-results.test.ts > shows the requested 200-step settings for a running song before verified result metadata exists
+ FAIL  song-results.test.ts > shows the requested 200-step settings for a error song before verified result metadata exists
+AssertionError: expected '100IT' to contain '200IT'
+
+Expected: "200IT"
+Received: "100IT"
+
+ ❯ song-results.test.ts:82:50
+     80| it.each(["queued", "running", "error"] as const)("shows the requested …
+     81|   song.status = status; song.params.inference_steps = 200; song.result…
+     82|   expect(row().querySelector(".m")!.textContent).toContain("200IT");
+       |                                                  ^
+     83|   expect(song.params.inference_steps).toBe(200);
+     84| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 18 skipped (21)
+   Start at  15:59:51
+   Duration  301ms (environment 57%, tests 30%, transform 9%, import 3%, worker 1%)

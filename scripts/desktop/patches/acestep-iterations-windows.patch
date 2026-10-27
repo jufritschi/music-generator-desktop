@@ -1,0 +1,132 @@
+diff --git a/src/pipeline-synth-ops.cpp b/src/pipeline-synth-ops.cpp
+index 58bcd10..c8e8c1f 100644
+--- a/src/pipeline-synth-ops.cpp
++++ b/src/pipeline-synth-ops.cpp
+@@ -5,6 +5,7 @@
+ // pipeline-synth-impl.h for the struct layouts.
+ 
+ #include "pipeline-synth-ops.h"
++#include "desktop-generation-limits.h"
+ 
+ #include "dit-sampler.h"
+ #include "philox.h"
+@@ -239,12 +240,11 @@ int ops_resolve_params(const AceSynth * ctx, const AceRequest * reqs, int batch_
+     s.guidance_scale = s.rr.guidance_scale;
+     s.shift          = s.rr.shift;
+ 
+-    if (s.num_steps <= 0) {
+-        s.num_steps = ctx->meta->is_turbo ? 8 : 50;
+-    }
+-    if (s.num_steps > 100) {
+-        fprintf(stderr, "[Resolve-Params] WARNING: inference_steps %d clamped to 100\n", s.num_steps);
+-        s.num_steps = 100;
++    const int requested_steps = s.num_steps;
++    s.num_steps = desktop_inference_steps(requested_steps, ctx->meta->is_turbo);
++    if (requested_steps > DESKTOP_MAX_INFERENCE_STEPS) {
++        fprintf(stderr, "[Resolve-Params] WARNING: inference_steps %d clamped to %d\n",
++                requested_steps, DESKTOP_MAX_INFERENCE_STEPS);
+     }
+ 
+     if (s.guidance_scale <= 0.0f) {
+@@ -933,6 +933,7 @@ int ops_vae_decode(const AceSynth * ctx,
+         memcpy(out[b].samples, audio.data(), (size_t) n_total * sizeof(float));
+         out[b].n_samples   = T_audio;
+         out[b].sample_rate = 48000;
++        out[b].inference_steps = s.num_steps;
+ 
+         // Waveform hard splice (audio path only): replace out-of-zone samples
+         // with the original source PCM. The VAE roundtrip is lossy, so this
+diff --git a/src/pipeline-synth.h b/src/pipeline-synth.h
+index 4f23161..fc05b0d 100644
+--- a/src/pipeline-synth.h
++++ b/src/pipeline-synth.h
+@@ -35,6 +35,7 @@ struct AceAudio {
+     float * samples;      // planar stereo [L0..LN, R0..RN]
+     int     n_samples;    // per channel
+     int     sample_rate;  // always 48000
++    int     inference_steps; // actual completed DiT schedule, not the requested value
+ };
+ 
+ void ace_synth_default_params(AceSynthParams * p);
+diff --git a/src/request.cpp b/src/request.cpp
+index 8633862..3661ed4 100644
+--- a/src/request.cpp
++++ b/src/request.cpp
+@@ -1,6 +1,7 @@
+ // request.cpp: AceStep request JSON read/write (yyjson)
+ 
+ #include "request.h"
++#include "desktop-generation-limits.h"
+ 
+ #include "task-types.h"
+ #include "yyjson.h"
+@@ -386,6 +387,8 @@ static yyjson_mut_doc * request_build_doc(const AceRequest * r, bool sparse) {
+         yyjson_mut_obj_add_bool(doc, root, "use_cot_caption", r->use_cot_caption);
+     }
+ 
++    yyjson_mut_obj_add_int(doc, root, "inference_steps_limit", DESKTOP_MAX_INFERENCE_STEPS);
++
+     // DiT control (0 = auto-detect from model)
+     if (all || r->inference_steps != def.inference_steps) {
+         yyjson_mut_obj_add_int(doc, root, "inference_steps", r->inference_steps);
+diff --git a/tools/ace-server.cpp b/tools/ace-server.cpp
+index 0dcaf0b..fb79f32 100644
+--- a/tools/ace-server.cpp
++++ b/tools/ace-server.cpp
+@@ -29,6 +29,8 @@
+ //   /understand LM + DiT + VAE
+ 
+ #include "audio-io.h"
++#include "desktop-generation-limits.h"
++#include <climits>
+ #include "backend.h"
+ #include "model-registry.h"
+ #include "model-store.h"
+@@ -865,6 +867,7 @@ static void synth_worker(std::shared_ptr<Job>    job,
+     const char * mime = output_wav ? "audio/wav" : "audio/mpeg";
+ 
+     std::vector<std::string> encoded(total_tracks);
++    std::vector<int> executed_steps(total_tracks, 0);
+     for (int b = 0; b < total_tracks; b++) {
+         if (!audio[b].samples) {
+             continue;
+@@ -878,6 +881,7 @@ static void synth_worker(std::shared_ptr<Job>    job,
+             encoded[b] = audio_encode_mp3(audio[b].samples, audio[b].n_samples, 48000, groups[0][b].mp3_bitrate,
+                                           server_cancel_job, (void *) &job->cancel);
+         }
++        executed_steps[b] = audio[b].inference_steps;
+         ace_audio_free(&audio[b]);
+     }
+ 
+@@ -885,7 +889,16 @@ static void synth_worker(std::shared_ptr<Job>    job,
+     // part and one latent part per generated track, paired in wire order.
+     // The audio mime is per-part so the client knows wav vs mp3 without a
+     // query. The latent reproduces its track's audio when fed back to /vae.
+-    job->result_body = multipart_build_audio_latent(encoded, mime, captured_latents);
++    std::string execution = "[";
++    for (int b = 0; b < total_tracks; b++) {
++        if (b > 0) execution += ",";
++        execution += "{\"inference_steps_limit\":" + std::to_string(DESKTOP_MAX_INFERENCE_STEPS)
++                   + ",\"effective_inference_steps\":" + std::to_string(executed_steps[b]) + "}";
++    }
++    execution += "]";
++    job->result_body = std::string("--") + MULTIPART_BOUNDARY
++                    + "\r\nContent-Type: application/json\r\n\r\n" + execution + "\r\n"
++                    + multipart_build_audio_latent(encoded, mime, captured_latents);
+     job->result_mime = MULTIPART_MIME;
+ 
+     job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::DONE);
+@@ -1629,6 +1642,13 @@ static void usage(const char * prog) {
+ }
+ 
+ int main(int argc, char ** argv) {
++    if (argc == 3 && strcmp(argv[1], "--desktop-iteration-probe") == 0) {
++        char * end = nullptr;
++        const long requested = strtol(argv[2], &end, 10);
++        if (argv[2][0] == '\0' || *end != '\0' || requested < 0 || requested > INT_MAX) return 2;
++        printf("%d\n", desktop_inference_steps((int)requested, false));
++        return 0;
++    }
+     ace_lm_default_params(&g_lm_params);
+     ace_synth_default_params(&g_synth_params);
+ 

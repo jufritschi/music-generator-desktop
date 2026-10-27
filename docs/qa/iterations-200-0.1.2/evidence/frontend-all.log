@@ -1,0 +1,15 @@
+
+> music-generator-desktop@0.1.2 test
+> vitest run
+
+
+ RUN  v5.0.5 /Users/frank/.codex/worktrees/252d/music-generator-desktop/frontend
+
+
+ Test Files  37 passed (37)
+      Tests  348 passed (348)
+   Start at  16:05:30
+   Duration  3.99s (tests 63%, environment 31%, import 4%, transform 2%, worker 1%)
+
+    Isolate  37 workers spawned · ~325ms startup each (spawn + environment, per file)
+             at least ~382ms faster with isolate: false — reuses workers across files instead of one per file

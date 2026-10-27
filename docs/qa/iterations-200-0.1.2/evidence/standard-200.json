@@ -1,0 +1,71 @@
+{
+  "id": "025a88f8bd2a40028605292a8cdeaee3",
+  "title": "QA 0.1.2 Standard 200 IT",
+  "status": "done",
+  "params": {
+    "bpm": 0,
+    "caption": "quiet piano, A lighthouse in the rain",
+    "duration": 10.0,
+    "folder_id": null,
+    "group_id": null,
+    "inference_steps": 200,
+    "instrumental": true,
+    "keep_caption": true,
+    "keyscale": "",
+    "lm_temperature": 1.2,
+    "lyrics": "[Instrumental]",
+    "model_selection": {
+      "language": "acestep-5Hz-lm-4B-Q8_0.gguf",
+      "provider": "ace-step",
+      "synthesis": "acestep-v15-sft-Q8_0.gguf"
+    },
+    "prompt": "A lighthouse in the rain",
+    "seed": 1221214361,
+    "style": "quiet piano",
+    "timesignature": "",
+    "title": "QA 0.1.2 Standard 200 IT",
+    "use_cot_caption": false,
+    "variants": 1,
+    "vocal_language": ""
+  },
+  "meta": {
+    "bpm": 86,
+    "caption": "quiet piano, A lighthouse in the rain",
+    "duration": 6.8,
+    "duration_source": "wav",
+    "duration_warning": {
+      "actual_seconds": 6.8,
+      "code": "short_audio",
+      "requested_seconds": 10.0
+    },
+    "effective_inference_steps": 200,
+    "inference_steps": 200,
+    "inference_steps_limit": 200,
+    "keyscale": "B major",
+    "lm_attempts": 2,
+    "lm_duration": 10.0,
+    "lm_mode": "generate",
+    "lm_model": "acestep-5Hz-lm-4B-Q8_0.gguf",
+    "lm_retry_seed": 2287699070,
+    "lm_seed": 2287699069,
+    "lm_temperature": 1.2,
+    "lyrics": "[Instrumental]",
+    "output_format": "wav16",
+    "peak_clip": 0,
+    "requested_duration": 10.0,
+    "seed": 1221214361,
+    "solver": "euler",
+    "synth_model": "acestep-v15-sft-Q8_0.gguf",
+    "task_type": "text2music",
+    "timesignature": "6",
+    "use_cot_caption": false,
+    "vocal_language": "no"
+  },
+  "audio_codes": 34,
+  "wav": {
+    "frames": 326400,
+    "sample_rate": 48000,
+    "seconds": 6.8
+  },
+  "sha256": "f12d89e096606b2c58912368207c3be6f377fd015052ec75b321ec053a3c8119"
+}
