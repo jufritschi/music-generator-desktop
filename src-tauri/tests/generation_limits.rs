@@ -5,7 +5,14 @@ use serde_json::json;
 fn new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute() {
     let root = tempfile::tempdir().unwrap();
     let db = Database::open(root.path()).unwrap();
-    for (requested, effective) in [(100, 100), (101, 100), (200, 100), (0, 50), (1, 1)] {
+    for (requested, effective) in [
+        (100, 100),
+        (101, 101),
+        (120, 120),
+        (200, 200),
+        (0, 50),
+        (1, 1),
+    ] {
         let request = GenerateRequest {
             title: "Iteration contract".into(),
             prompt: "quiet piano".into(),
@@ -19,6 +26,22 @@ fn new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute() {
         assert_eq!(execution["inference_steps"], effective);
         db.fail(&id, "fixture").unwrap();
     }
+}
+
+#[test]
+fn new_requests_above_two_hundred_are_rejected_without_creating_songs() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Database::open(root.path()).unwrap();
+    for steps in [201, u32::MAX] {
+        assert!(db
+            .enqueue(&GenerateRequest {
+                prompt: "quiet piano".into(),
+                inference_steps: steps,
+                ..Default::default()
+            })
+            .is_err());
+    }
+    assert!(db.songs(&Default::default()).unwrap().is_empty());
 }
 
 #[test]
@@ -47,9 +70,9 @@ fn legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_model
     assert_eq!(effective_steps(None, "acestep-v15-sft-Q8_0.gguf"), 50);
     assert_eq!(effective_steps(Some(0), "acestep-v15-xl-sft-Q8_0.gguf"), 50);
     assert_eq!(effective_steps(Some(100), "sft.gguf"), 100);
-    assert_eq!(effective_steps(Some(101), "sft.gguf"), 100);
-    assert_eq!(effective_steps(Some(200), "sft.gguf"), 100);
-    assert_eq!(effective_steps(Some(u64::MAX), "sft.gguf"), 100);
+    assert_eq!(effective_steps(Some(101), "sft.gguf"), 101);
+    assert_eq!(effective_steps(Some(200), "sft.gguf"), 200);
+    assert_eq!(effective_steps(Some(u64::MAX), "sft.gguf"), 200);
 }
 
 #[test]
@@ -81,7 +104,31 @@ fn retry_keeps_historical_requests_while_execution_uses_the_supported_limit() {
     assert_eq!(retried, original);
     assert_eq!(
         effective_steps(retried["inference_steps"].as_u64(), "sft.gguf"),
-        100
+        120
     );
     assert_eq!(db.song(&id).unwrap().params, original);
+}
+
+#[test]
+fn historical_metadata_keeps_the_old_cap_without_explicit_new_runtime_evidence() {
+    use music_generator::generation_limits::enrich_metadata;
+    let params = json!({"inference_steps": 120});
+    for (mut metadata, expected) in [
+        (json!({"inference_steps":120}), 100),
+        (json!({"effective_inference_steps":100}), 100),
+        (json!({"effective_inference_steps":120}), 100),
+        (
+            json!({"inference_steps":200,"inference_steps_limit":200}),
+            200,
+        ),
+        (
+            json!({"effective_inference_steps":200,"inference_steps_limit":200}),
+            200,
+        ),
+    ] {
+        let original = params.clone();
+        enrich_metadata(&params, &mut metadata);
+        assert_eq!(metadata["effective_inference_steps"], expected);
+        assert_eq!(params, original);
+    }
 }

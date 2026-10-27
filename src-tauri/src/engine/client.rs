@@ -235,62 +235,7 @@ async fn checked(response: reqwest::Response) -> Result<reqwest::Response> {
     )))
 }
 
-pub fn extract_json(ctype: &str, body: &[u8]) -> Result<Value> {
-    let bytes = if ctype.starts_with("application/json") {
-        body.to_vec()
-    } else {
-        multipart_part(ctype, body, "application/json")?.0
-    };
-    let value: Value = serde_json::from_slice(&bytes)?;
-    let value = if let Value::Array(mut items) = value {
-        if items.is_empty() {
-            return Err(message("Empty engine result"));
-        }
-        items.remove(0)
-    } else {
-        value
-    };
-    if !value.is_object() {
-        return Err(message("Invalid engine metadata"));
-    }
-    Ok(value)
-}
-
-pub fn extract_audio(ctype: &str, body: &[u8]) -> Result<(Vec<u8>, String)> {
-    let (bytes, kind) = if ctype.starts_with("audio/") {
-        (body.to_vec(), ctype.into())
-    } else {
-        multipart_part(ctype, body, "audio/")?
-    };
-    if bytes.is_empty() {
-        return Err(message("Engine returned empty audio"));
-    }
-    let ext = if kind.contains("mpeg") || kind.contains("mp3") {
-        "mp3"
-    } else {
-        "wav"
-    };
-    Ok((bytes, ext.into()))
-}
-
-fn multipart_part(ctype: &str, body: &[u8], prefix: &str) -> Result<(Vec<u8>, String)> {
-    if !ctype.to_lowercase().starts_with("multipart/") {
-        return Err(message(format!("Unexpected engine response: {ctype}")));
-    }
-    let mut message_bytes =
-        format!("Content-Type: {ctype}\r\nMIME-Version: 1.0\r\n\r\n").into_bytes();
-    message_bytes.extend(body);
-    let parsed = mailparse::parse_mail(&message_bytes).map_err(|e| message(e.to_string()))?;
-    for part in &parsed.subparts {
-        if part.ctype.mimetype.starts_with(prefix) {
-            return Ok((
-                part.get_body_raw().map_err(|e| message(e.to_string()))?,
-                part.ctype.mimetype.clone(),
-            ));
-        }
-    }
-    Err(message(format!("No {prefix} part in engine response")))
-}
+pub use super::response::{extract_audio, extract_json};
 
 pub fn selftest_ok(result: &Value) -> bool {
     let codes: Vec<&str> = result["audio_codes"]

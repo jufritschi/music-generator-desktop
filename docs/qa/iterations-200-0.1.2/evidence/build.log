@@ -1,0 +1,19 @@
+
+> music-generator-desktop@0.1.2 build
+> tsc --noEmit && vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 62 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/splash.html                   2.35 kB │ gzip:   1.02 kB
+dist/index.html                   27.54 kB │ gzip:   7.33 kB
+dist/assets/core-D8JdUYEZ.js       1.83 kB │ gzip:   0.88 kB
+dist/assets/locales-DJ-JUh2i.js    2.00 kB │ gzip:   1.10 kB
+dist/assets/main-B2xg9W7M.js       2.07 kB │ gzip:   1.07 kB
+dist/assets/splash-B8U5R8LJ.js     9.40 kB │ gzip:   4.41 kB
+dist/assets/studio-CxrfpMWo.js    49.67 kB │ gzip:  19.05 kB
+dist/assets/main-Bxjni4n4.js     300.14 kB │ gzip: 101.86 kB
+
+✓ built in 49ms

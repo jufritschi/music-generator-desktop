@@ -1,8 +1,8 @@
-import { MAX_INFERENCE_STEPS } from "./generation-limits";
+import { LEGACY_INFERENCE_STEPS_LIMIT, MAX_INFERENCE_STEPS } from "./generation-limits";
 import { samplingForSong } from "./song-sampling";
 import type { Song } from "./types";
 
-type ResultSong = Pick<Song, "params" | "result_meta">;
+type ResultSong = Pick<Song, "params" | "result_meta"> & Partial<Pick<Song, "status">>;
 export interface DurationWarning {
   code: "short_audio" | "long_audio";
   requested_seconds: number;
@@ -12,11 +12,13 @@ const positive = (value: unknown): value is number => typeof value === "number" 
 
 /** Locally verified execution wins; an uninitialised old request without a model does not establish its actual steps. */
 export function songIterations(song: ResultSong): number | null {
+  const unfinished = song.status !== undefined && song.status !== "done";
+  const limit = unfinished || song.result_meta?.inference_steps_limit === MAX_INFERENCE_STEPS ? MAX_INFERENCE_STEPS : LEGACY_INFERENCE_STEPS_LIMIT;
   const verified = song.result_meta?.effective_inference_steps;
-  if (positive(verified) && Number.isInteger(verified) && verified <= MAX_INFERENCE_STEPS) return verified;
+  if (positive(verified) && Number.isInteger(verified) && verified <= MAX_INFERENCE_STEPS) return Math.min(verified, limit);
   const requested = song.params.inference_steps;
   if (requested == null || requested === 0) return typeof song.params.model_selection?.synthesis === "string" && song.params.model_selection.synthesis ? samplingForSong(song.params).inference_steps : null;
-  return positive(requested) && Number.isInteger(requested) ? Math.min(requested, MAX_INFERENCE_STEPS) : null;
+  return positive(requested) && Number.isInteger(requested) ? Math.min(requested, limit) : null;
 }
 
 /** Duration describes the audio only when the backend measured the WAV, never from an LM prediction or request. */

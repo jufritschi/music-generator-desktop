@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn saved_iteration_values_above_the_engine_limit_restore_as_one_hundred() {
+    fn saved_iteration_values_within_two_hundred_remain_unchanged() {
         let root = tempfile::tempdir().unwrap();
         let db = Database::open(root.path()).unwrap();
         for steps in [100, 101, 120, 200] {
@@ -182,7 +182,7 @@ mod tests {
                 &json!({"inference_steps": steps, "duration": 30, "variants": 1, "legacy_note": "retain"}).to_string(),
             );
             let values = db.generation_form_preferences().unwrap();
-            assert_eq!(values.inference_steps, 100);
+            assert_eq!(values.inference_steps, steps);
             assert_eq!(values.duration, 30.0);
             assert_eq!(values.variants, 1);
             let saved: String = db
@@ -193,7 +193,7 @@ mod tests {
                 .unwrap();
             assert_eq!(
                 serde_json::from_str::<Value>(&saved).unwrap(),
-                json!({"inference_steps": 100, "duration": 30, "variants": 1, "legacy_note": "retain"})
+                json!({"inference_steps": steps, "duration": 30, "variants": 1, "legacy_note": "retain"})
             );
         }
     }
@@ -207,7 +207,7 @@ mod tests {
             ..Default::default()
         };
         db.save_generation_form_preferences(&saved).unwrap();
-        for steps in [101, 120, 200] {
+        for steps in [201, u32::MAX] {
             let invalid = GenerationFormPreferences {
                 inference_steps: steps,
                 ..saved.clone()
@@ -296,7 +296,7 @@ mod tests {
                 ..defaults.clone()
             });
         }
-        for inference_steps in [0, 101, 201] {
+        for inference_steps in [0, 201] {
             invalid.push(GenerationFormPreferences {
                 inference_steps,
                 ..defaults.clone()
@@ -332,7 +332,7 @@ mod tests {
             GenerationFormPreferences {
                 duration: 600.0,
                 bpm: 200,
-                inference_steps: 100,
+                inference_steps: 200,
                 lm_temperature: 1.5,
                 variants: 10,
             },

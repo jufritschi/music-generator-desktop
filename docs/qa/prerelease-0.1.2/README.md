@@ -1,4 +1,6 @@
-# Abnahme für Prerelease 0.1.2
+# Erste Abnahme für Prerelease 0.1.2 (ursprünglicher Build)
+
+Die anschließend ausdrücklich angeforderte Rückkehr auf tatsächlich 200 Schritte wird im [separaten Nachtrag](../iterations-200-0.1.2/README.md) geprüft. Dieser Bericht bleibt als Beleg des ursprünglichen 100er Builds erhalten.
 
 27. Oktober 2026 · macOS 26.6.2 · Apple M5 Pro · 64 GiB RAM.
 

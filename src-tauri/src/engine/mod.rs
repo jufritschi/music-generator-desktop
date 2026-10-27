@@ -6,6 +6,7 @@ mod generation;
 pub(crate) mod manager;
 pub mod process;
 pub mod progress;
+mod response;
 use crate::{
     error::{message, Error, Result},
     types::Settings,

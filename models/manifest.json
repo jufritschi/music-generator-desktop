@@ -47,26 +47,42 @@
   ],
   "engines": {
     "macos": {
-      "revision": "b7ba6d9-sandbox1",
+      "revision": "b7ba6d9-sandbox2-steps200",
       "source_revision": "b7ba6d9ce2f19ca7627fb8f340032c3ebe8ae253",
-      "repository": "https://github.com/ServeurpersoCom/acestep.cpp"
+      "repository": "https://github.com/ServeurpersoCom/acestep.cpp",
+      "max_inference_steps": 200
     },
     "windows": {
-      "revision": "6013134",
+      "revision": "6013134-steps200",
       "url": "https://github.com/rabbitfiremediacreation/music-generator/releases/download/engine-win64-6013134/acestep-cpp-win64-6013134.zip",
       "sha256": "647f4ffd1cb2f2e20ac3d54e92a45ed83d3cf9278e55e8b4da1c788fbfb74ac2",
       "cuda": {
-        "engine_revision": "6013134",
+        "engine_revision": "6013134-steps200",
         "archive_sha256": "647f4ffd1cb2f2e20ac3d54e92a45ed83d3cf9278e55e8b4da1c788fbfb74ac2",
         "minimum_compute_capability": "7.5",
-        "ptx_architectures": ["7.5", "8.0"],
-        "native_architectures": ["8.6", "8.9", "12.0a", "12.1a"],
+        "ptx_architectures": [
+          "7.5",
+          "8.0"
+        ],
+        "native_architectures": [
+          "8.6",
+          "8.9",
+          "12.0a",
+          "12.1a"
+        ],
         "ptx_isa": "9.4"
-      }
+      },
+      "source_revision": "6013134c136d9fb4e970cf690e76925be9553da0",
+      "repository": "https://github.com/ServeurpersoCom/acestep.cpp",
+      "ggml_revision": "2eddaf94a8cdbbf1c30017d28313cd661a9da543",
+      "max_inference_steps": 200,
+      "iterations_patch": "acestep-iterations-windows.patch"
     },
     "linux": {
-      "revision": "b7ba6d9ce2f19ca7627fb8f340032c3ebe8ae253",
-      "repository": "https://github.com/ServeurpersoCom/acestep.cpp"
+      "revision": "b7ba6d9-steps200",
+      "repository": "https://github.com/ServeurpersoCom/acestep.cpp",
+      "source_revision": "b7ba6d9ce2f19ca7627fb8f340032c3ebe8ae253",
+      "max_inference_steps": 200
     }
   }
 }

@@ -1,0 +1,22 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.36s
+     Running tests/audio_duration.rs (src-tauri/target/debug/deps/audio_duration-566a1871896c8dbb)
+
+running 1 test
+test only_actual_synthesis_result_evidence_can_confirm_two_hundred_iterations ... FAILED
+
+failures:
+
+---- only_actual_synthesis_result_evidence_can_confirm_two_hundred_iterations stdout ----
+
+thread 'only_actual_synthesis_result_evidence_can_confirm_two_hundred_iterations' (100672054) panicked at tests/audio_duration.rs:210:9:
+assertion failed: request.get("inference_steps_limit").is_none()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    only_actual_synthesis_result_evidence_can_confirm_two_hundred_iterations
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test audio_duration`

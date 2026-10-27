@@ -1,0 +1,26 @@
+Prüfsumme für Protective Master Boot Record (MBR : 0) berechnen …
+Protective Master Boot Record (MBR :: Die überprüfte CRC32-Prüfsumme ist $C19F7049
+Prüfsumme für GPT Header (Primary GPT Header : 1) berechnen …
+ GPT Header (Primary GPT Header : 1): Die überprüfte CRC32-Prüfsumme ist $F6F10824
+Prüfsumme für GPT Partition Data (Primary GPT Table : 2) berechnen …
+GPT Partition Data (Primary GPT Tabl: Die überprüfte CRC32-Prüfsumme ist $3A884E98
+Prüfsumme für  (Apple_Free : 3) berechnen …
+                    (Apple_Free : 3): Die überprüfte CRC32-Prüfsumme ist $00000000
+Prüfsumme für disk image (Apple_APFS : 4) berechnen …
+         disk image (Apple_APFS : 4): Die überprüfte CRC32-Prüfsumme ist $89E601E6
+Prüfsumme für GPT Partition Data (Backup GPT Table : 5) berechnen …
+GPT Partition Data (Backup GPT Table: Die überprüfte CRC32-Prüfsumme ist $3A884E98
+Prüfsumme für GPT Header (Backup GPT Header : 6) berechnen …
+  GPT Header (Backup GPT Header : 6): Die überprüfte CRC32-Prüfsumme ist $C83B96D9
+Die überprüfte CRC32-Prüfsumme ist $BF7D8523
+hdiutil: verify: checksum of "/Users/frank/.codex/worktrees/252d/music-generator-desktop/release/Music-Generator-0.1.2-macos-arm64.dmg" is VALID
+Die erwartete CRC32-Prüfsumme ist $BF7D8523
+/dev/disk5          	GUID_partition_scheme
+/dev/disk5s1        	Apple_APFS
+/dev/disk6          	EF57347C-0000-11AA-AA11-0030654
+/dev/disk6s1        	41504653-0000-11AA-AA11-0030654	/private/var/folders/0k/n0yq1d757fj2g7jx74sxtxpc0000gn/T/Music Generator portable test sRcI6c/mounted
+"disk5" ejected.
+load_backend: loaded CPU backend from /var/folders/0k/n0yq1d757fj2g7jx74sxtxpc0000gn/T/Music Generator portable test sRcI6c/Music Generator.app/Contents/Resources/engine/libggml-cpu.so
+App Sandbox: supervised MP3 export and ZIP passed; original WAV preserved.
+App Sandbox: native title runtime starts; unselected file access denied.
+App Sandbox: unselected read/write denied; inherited engine read denied; container storage, loopback health and supervisor shutdown passed.

@@ -10,7 +10,7 @@ it("rejects a cached engine from the other Linux variant or an older build recip
   const work = await mkdtemp(path.join(tmpdir(), "linux-provenance-test-"));
   try {
     const vulkan = desktopTarget("linux", "x64"), cuda = desktopTarget("linux", "x64", "cuda");
-    const metadata = { platform: "linux", arch: "x64", revision: manifest.engines.linux.revision, backend: "vulkan", recipe_sha256: await engineRecipeHash(vulkan) };
+    const metadata = { platform: "linux", arch: "x64", revision: manifest.engines.linux.revision, backend: "vulkan", max_inference_steps:200, recipe_sha256: await engineRecipeHash(vulkan) };
     await writeFile(path.join(work, "ace-server"), "test engine");
     await recordHashes(work, metadata);
     await verifyEngine(work, vulkan);
@@ -29,4 +29,17 @@ it("rejects a cached engine from the other Linux variant or an older build recip
     await recordHashes(work, { ...metadata, backend: "cuda", recipe_sha256: await engineRecipeHash(cuda) });
     await assert.rejects(verifyEngine(work, cuda), /Retired provider resources/);
   } finally { await rm(work, { recursive: true, force: true }); }
+});
+
+it("rejects the old Windows iteration limit even when target and file hashes match", async () => {
+  const work = await mkdtemp(path.join(tmpdir(), "windows-step-contract-"));
+  try {
+    const windows = desktopTarget("windows", "x64");
+    await writeFile(path.join(work, "ace-server.exe"), "old engine");
+    await recordHashes(work, {
+      platform:"windows",arch:"x64",revision:manifest.engines.windows.revision,
+      recipe_sha256:await engineRecipeHash(windows),max_inference_steps:100,
+    });
+    await assert.rejects(verifyEngine(work,windows),/iteration limit/);
+  } finally { await rm(work,{recursive:true,force:true}); }
 });

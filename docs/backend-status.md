@@ -1,16 +1,22 @@
 # Rechen-Backend und CUDA-Kompatibilität
 
-Die Hardwareanzeige beschreibt den Rechner. Das tatsächlich verwendete Rechen-Backend steht getrennt davon im Hardwaretest-Ergebnis und im Studio unter **Rechen-Backend**. Dort lassen sich die Details für **Klangerzeugung** und **Sprachmodell** öffnen. Möglich sind CUDA, Vulkan, Metal, CPU oder ein noch unbekanntes Backend.
+Die Hardwareanzeige beschreibt den Rechner. Im Studio steht das **Rechenbackend** kompakt neben Sprache und Einstellungen. Bereits vor der ersten Generierung zeigt die modellfreie Erkennung ein verfügbares Backend wie Metal; dies ist noch kein Beleg für eine ausgeführte Synthese. Tooltip und zugängliche Beschreibung unterscheiden erkannte Verfügbarkeit, bestätigte Klangerzeugung und die getrennte Sprachmodellwahl. Möglich sind CUDA, Vulkan, Metal, CPU oder ein noch unbekanntes Backend.
 
 ## Was die Anzeige belegt
 
-Die App wertet ausschließlich Ausführungsmeldungen der aktuell von ihr gestarteten Engine-Prozesse aus: `[Load] LM backend: …` für das Sprachmodell und `[Load] DiT backend: …` für die Klangerzeugung. Eine geladene CUDA-DLL, eine erkannte NVIDIA-Karte oder ein erreichbarer Modellserver beweisen noch keine CUDA-Nutzung. Die Anzeige beschreibt das primäre Backend dieser Modellkomponenten; sie behauptet nicht, dass jede einzelne Rechenoperation auf der GPU stattfindet.
+Für die Bestätigung einer tatsächlichen Ausführung wertet die App ausschließlich Meldungen der aktuell von ihr gestarteten Engine-Prozesse aus: `[Load] LM backend: …` für das Sprachmodell und `[Load] DiT backend: …` für die Klangerzeugung. Eine geladene CUDA-DLL, eine erkannte NVIDIA-Karte oder ein erreichbarer Modellserver beweisen noch keine CUDA-Nutzung. Die Anzeige beschreibt das primäre Backend dieser Modellkomponenten; sie behauptet nicht, dass jede einzelne Rechenoperation auf der GPU stattfindet.
 
-Jeder Startversuch erhält eine neue Loggrenze. Alte Meldungen aus `logs/ace-server.log` und `logs/ace-lm.log` werden nicht als aktuelle Nutzung übernommen. Ein separater CPU-Sprachmodellprozess bleibt von der Klangerzeugung getrennt. Vor dem Start steht **Noch nicht gestartet**, nach dem Start ohne Ausführungsbeleg **Noch nicht bestätigt**, nach dem Beenden **Engine beendet**. Nach einem App-Neustart wird kein früheres Backend als aktiv wiederhergestellt. Health-Abfragen starten keine Engine.
+Jeder Startversuch erhält eine neue Loggrenze. Alte Meldungen aus `logs/ace-server.log` und `logs/ace-lm.log` werden nicht als aktuelle Nutzung übernommen. Ein separater CPU-Sprachmodellprozess bleibt von der Klangerzeugung getrennt. Die ausführlichen Diagnosen unterscheiden vor dem Start **Noch nicht gestartet**, nach dem Start ohne Ausführungsbeleg **Noch nicht bestätigt** und nach dem Beenden **Engine beendet**. Der kompakte Studioindikator zeigt bei verfügbarer Erkennung stattdessen das erkannte Backend und kennzeichnet dessen Herkunft in der Beschreibung. Nach einem App-Neustart wird kein früheres Backend als aktiv wiederhergestellt. Health-Abfragen starten keine Engine.
 
 Der Assistent testet das Sprachmodell, nicht die komplette Klangerzeugung. Sein Ergebnis kann daher beispielsweise **Sprachmodell: Vulkan** und **Klangerzeugung: Noch nicht bestätigt** zeigen. Erst die erste tatsächliche Synthese bestätigt deren Backend. Das Ergebnis bleibt bis zum Klick auf **Zum Studio** stehen; ein erneuter Aufruf des Assistenten beginnt wieder beim Formular.
 
 Eine ausdrückliche CPU-Auswahl und ein CPU-Bundle sind keine fehlgeschlagene CUDA-Nutzung. Der bestehende Testfallback betrifft ausschließlich das Sprachmodell. Bekannte Gründe werden erläutert; andernfalls steht ausdrücklich, dass kein Grund für die Backend-Auswahl belegt ist. Die App ergänzt keine automatische CUDA→Vulkan-Neustartstrategie und verändert die Auswahl der Engine nicht.
+
+## Überarbeitete 0.1.2-Engine mit 200 Schritten
+
+Die Composite-Revision `6013134-steps200` baut den Windows-ACE-Kern und seine CLI-Werkzeuge aus der passenden Quellrevision `6013134c136d9fb4e970cf690e76925be9553da0` mit der erweiterten Grenze neu. GGML-Header sind auf `2eddaf94a8cdbbf1c30017d28313cd661a9da543` gepinnt; die vollständigen GPU-/CPU-GGML-DLLs bleiben aus dem unten untersuchten, SHA-geprüften Archiv erhalten. Die bisherige CUDA-Binäranalyse beschreibt diese unveränderten DLLs und ersetzt weiterhin keinen realen NVIDIA-Inferenztest. Der ACE-Core selbst ist neu gebaut.
+
+Die produktive Normalisierung unterstützt 1–200 und wird vor Runtime-Caching sowie im verlagerten Bundle modellfrei geprüft. Der Synthesepfad meldet tatsächlich ausgeführte Schritte separat vom ursprünglichen Request. [Abnahme der 200er-Korrektur](qa/iterations-200-0.1.2/README.md).
 
 ## Untersuchter Windows-Build
 

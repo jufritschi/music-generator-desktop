@@ -204,6 +204,7 @@ impl Database {
         if !(1..=50).contains(&req.variants)
             || !req.duration.is_finite()
             || !(0.0..=600.0).contains(&req.duration)
+            || req.inference_steps > crate::generation_limits::MAX_INFERENCE_STEPS
             || req.bpm > 300
             || req.seed.checked_add(req.variants as i64).is_none()
             || req
