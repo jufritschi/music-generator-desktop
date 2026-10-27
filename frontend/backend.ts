@@ -3,11 +3,13 @@ import type { GenerationPolicy, Bootstrap, Filter, Folder, Generation, Generatio
 
 async function command<T>(name: string, args?: Record<string, unknown>): Promise<T> {
   try { return await invoke<T>(name, args); }
-  catch (error) { throw new Error(typeof error === "string" ? error : String(error)); }
+  catch (error) { throw error instanceof Error ? error : new Error(typeof error === "string" ? error : String(error)); }
 }
 const audioUrl = (song: Song): Song => ({ ...song, url: song.path ? convertFileSrc(song.path) : null });
 
 export const backend = {
+  dialogDirectory: (current: string | null, remembered: string | null, exporting: boolean) => command<string>("dialog_directory", { current, remembered, exporting }),
+  pickAudioFile: (directory: string, title: string, filterName: string) => command<{ name: string; directory: string; data: number[] } | null>("pick_audio_file", { directory, title, filterName }),
   rememberFolder: (path: string) => command<void>("remember_folder", { path }),
   bootstrap: () => command<Bootstrap>("bootstrap"),
   setup: (request: SetupRequest) => command<{ ok: boolean; mode: string }>("setup_models", { request }),
@@ -38,7 +40,7 @@ export const backend = {
   saveGenerationFormPreferences: (values: GenerationFormPreferences) => command<void>("save_generation_form_preferences", { values }),
   health: () => command<Health>("health"),
   analyze: async (file: File, selection?: ModelSelection) => {
-    if (file.size > 60 * 1024 * 1024) throw new Error("Audio files must be smaller than 60 MB");
+    if (file.size > 60 * 1024 * 1024) throw new Error("audio_size");
     const filename = /\.(wav|mp3|flac|m4a|ogg)$/i.test(file.name) ? file.name : `${file.name}.wav`;
     return command<Record<string, unknown>>("analyze", { data: Array.from(new Uint8Array(await file.arrayBuffer())), filename, selection });
   },

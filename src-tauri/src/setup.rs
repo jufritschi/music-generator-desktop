@@ -11,11 +11,11 @@ use crate::{
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 use tokio_util::sync::CancellationToken;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SetupRequest {
@@ -78,7 +78,6 @@ pub async fn configure(
 ) -> Result<Value> {
     let change = Change::begin(state.clone(), OperationKind::Setup)?;
     validate_selection(&request, &state.db.settings()?, hardware::inspect())?;
-    state.stop_engine();
     let cancel = change.cancellation();
     let settings = prepare_configuration(
         &state,
@@ -102,15 +101,12 @@ async fn prepare_configuration(
     stage: &impl Fn(&str),
 ) -> Result<Settings> {
     let selected = plan(request)?;
-    let models = PathBuf::from(&request.models_dir);
-    let songs = PathBuf::from(&request.songs_dir);
-    if !models.is_absolute() || !songs.is_absolute() {
-        return Err(message("Select absolute folders"));
-    }
-    crate::sandbox::remember(&models)?;
-    crate::sandbox::remember(&songs)?;
-    std::fs::create_dir_all(&models)?;
-    std::fs::create_dir_all(&songs)?;
+    let (models, songs) = crate::paths::setup_folders(&request.models_dir, &request.songs_dir)?;
+    std::fs::create_dir_all(&models).map_err(|_| message("path_access"))?;
+    std::fs::create_dir_all(&songs).map_err(|_| message("path_access"))?;
+    crate::sandbox::remember(&models).map_err(|_| message("path_access"))?;
+    crate::sandbox::remember(&songs).map_err(|_| message("path_access"))?;
+    state.stop_engine();
     let required: u64 = selected
         .iter()
         .filter(|(m, _)| !models.join(&m.file).exists())

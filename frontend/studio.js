@@ -5,6 +5,8 @@ import { measureMelody, describeIdea, toWav } from "./melody";
 import { modelErrorText, settingsChanges } from "./expert-mode";
 import { createSettingsDialog } from "./settings-dialog";
 import { backend } from "./backend";
+import { initializeAudioImport } from "./audio-import";
+import { pathErrorText } from "./path-dialogs";
 import { generationModels, restoreSongModels, generationModelAllowed } from "./model-picker";
 import { t, LANG, setLang } from "./i18n.js";
 import { exportSong, exportFolder } from "./exports";
@@ -227,7 +229,7 @@ function fillForm(s) {
 
 // ---------------------------------------------------------------- Song-Upload (Analyse)
 // Geheime Dropzone: das Logo. Unauffällig, bis man draufzeigt, zieht oder es gerade etwas tut.
-const dz = $("#dropzone"), bubble = $("#dzBubble"), fileInput = $("#fileInput");
+const dz = $("#dropzone"), bubble = $("#dzBubble");
 let dzHideTimer = null;
 function dzState(cls, text) {
   clearTimeout(dzHideTimer);
@@ -271,10 +273,10 @@ async function analyzeFile(file, idea = null) {   // idea = Messwerte einer Mikr
     dzState("ok", idea ? t("idea_ready") : t("analyzed", file.name));
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
-    dzState("err", `${t("error")}: ${modelErrorText(err, t)}`);
+    dzState("err", `${t("error")}: ${pathErrorText(modelErrorText(err, t))}`);
   }
 }
-dz.addEventListener("click", () => fileInput.click());
+initializeAudioImport(dz, analyzeFile, message => dzState("err", `${t("error")}: ${message}`));
 
 // ---------------------------------------------------------------- Ideengeber (Aufnahme vom Mikrofon)
 // Knopf im Kopf: gedrückt halten = aufnehmen (Maus, Finger oder Leertaste), 5 bis REC_MAX Sekunden.
@@ -350,8 +352,6 @@ recBtn.addEventListener("click", (e) => {
   setTimeout(() => { if (recToggle) recStart(); }, 1800);
 });
 window.addEventListener("blur", recStop);
-dz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
-fileInput.addEventListener("change", () => analyzeFile(fileInput.files[0]));
 ["dragenter", "dragover"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
 ["dragleave", "dragend"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
 dz.addEventListener("drop", (e) => { e.preventDefault(); dz.classList.remove("drag"); analyzeFile(e.dataTransfer.files[0]); });

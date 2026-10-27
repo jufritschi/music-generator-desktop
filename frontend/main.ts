@@ -4,6 +4,7 @@ import "./model-i18n";
 import "./expert-i18n";
 import "./title-i18n";
 import "./import-i18n";
+import "./path-i18n";
 import "./form-preferences-i18n";
 import "./cpu-i18n";
 import { applyI18n } from "./i18n.js";

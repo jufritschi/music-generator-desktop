@@ -6,6 +6,7 @@ import type { ImportPreview, ImportRequest } from "./types";
 const mocks = vi.hoisted(() => ({
   open: vi.fn(), listen: vi.fn(), unlisten: vi.fn(), previewImport: vi.fn(), previewMove: vi.fn(),
   importLibrary: vi.fn(), rememberFolder: vi.fn(), cancelSetup: vi.fn(), saveSettings: vi.fn(),
+  dialogDirectory: vi.fn(),
 }));
 vi.mock("./backend", () => ({ backend: mocks }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mocks.open }));
@@ -21,6 +22,7 @@ beforeEach(() => {
   vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.open = true; });
   vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(function (this: HTMLDialogElement) { this.open = false; this.dispatchEvent(new Event("close")); });
   mocks.listen.mockResolvedValue(mocks.unlisten);
+  mocks.dialogDirectory.mockImplementation(async (current) => current || "/home/test");
   mocks.previewImport.mockResolvedValue(checked);
   mocks.previewMove.mockResolvedValue(checked);
   mocks.importLibrary.mockResolvedValue({ songs: 2, files: 2, songs_dir: "/chosen", missing: [] });
@@ -69,7 +71,7 @@ it("explains a selected songs folder and requests a fresh parent grant", async (
   mocks.open.mockResolvedValueOnce("/old/data/songs").mockResolvedValueOnce("/old/data");
   await openLibraryAssistant("import", "/chosen", "macos"); get("#importSourcePick").click();
   await settle();
-  expect(mocks.open).toHaveBeenLastCalledWith({ directory: true, defaultPath: "/old/data" });
+  expect(mocks.open).toHaveBeenLastCalledWith({ directory: true, defaultPath: "/old/data", title: "dialog_import_root" });
   expect(mocks.previewImport).toHaveBeenLastCalledWith(expect.objectContaining({ root: "/old/data" }));
 });
 

@@ -1,7 +1,7 @@
 import { loadGenerationPolicy } from "./generation-policy";
 import { modelErrorText, modelLabel } from "./expert-mode";
 import { listen } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder, pathErrorText } from "./path-dialogs";
 import { backend } from "./backend";
 import { openLibraryAssistant } from "./import-wizard";
 import { bytes, element } from "./dom";
@@ -12,12 +12,16 @@ const languageSizes = ["0.6B", "1.7B", "4B"];
 let initialized = false;
 let configuration: Bootstrap;
 let onReady: (resetSelection?: boolean) => Promise<void>;
+let estimateTimer: ReturnType<typeof setTimeout> | undefined;
+
+function cancelEstimate(): void { clearTimeout(estimateTimer); ++estimateSequence; }
 
 function request(): SetupRequest {
   return { lm: element<HTMLSelectElement>("#setupLm").value, xl: element<HTMLInputElement>("#setupXl").checked, models_dir: element<HTMLInputElement>("#setupModels").value.trim(), songs_dir: element<HTMLInputElement>("#setupSongs").value.trim() };
 }
 
 export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolean) => Promise<void>): Promise<void> {
+  cancelEstimate();
   configuration = data; onReady = ready;
   element("#studio").hidden = true; element("#setupScreen").hidden = false;
   element("#bootStatus").textContent = data.error || t(data.needs_setup ? "desktop_setup_hint" : "desktop_manage_hint");
@@ -30,6 +34,7 @@ export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolea
         <section class="import-card"><button type="button" class="sek" id="importLibrary" data-i18n="desktop_import"></button><p class="small" data-i18n="desktop_import_hint"></p><p id="importStatus" role="status"></p></section>
         <label class="field"><span class="lbl" data-i18n="desktop_models_folder"></span><div class="path-picker"><input id="setupModels" required><button type="button" class="sek" data-setup-pick="setupModels" data-i18n="desktop_browse"></button></div></label>
         <label class="field"><span class="lbl" data-i18n="songs_dir"></span><div class="path-picker"><input id="setupSongs" required><button type="button" class="sek" data-setup-pick="setupSongs" data-i18n="desktop_browse"></button></div></label>
+        <p class="small" id="setupPathHint" data-i18n="path_hint"></p>
         <label class="field"><span class="lbl" data-i18n="desktop_language_model"></span><select id="setupLm"></select><span class="small" id="lmRecommendation"></span></label>
         <label class="check-row" id="setupXlField"><input type="checkbox" id="setupXl"><span data-i18n="desktop_xl"></span></label>
         <div id="modelList" class="model-list"></div>
@@ -42,20 +47,31 @@ export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolea
     const language = element<HTMLSelectElement>("#setupLanguage");
     for (const [code, name] of Object.entries(LANGS)) language.add(new Option(name, code));
     language.onchange = () => { setLang(language.value); void updateEstimate(); };
-    element("#setupForm").addEventListener("change", () => { void updateEstimate(); });
+    for (const id of ["setupModels", "setupSongs"]) element(`#${id}`).setAttribute("aria-describedby", "setupPathHint");
+    element("#setupForm").addEventListener("input", (event) => {
+      if (!(event.target instanceof HTMLInputElement) || !["setupModels", "setupSongs"].includes(event.target.id)) return;
+      cancelEstimate();
+      element<HTMLButtonElement>("#setupStart").disabled = true;
+      estimateTimer = setTimeout(() => { void updateEstimate(); }, 300);
+    });
+    element("#setupForm").addEventListener("change", () => { cancelEstimate(); void updateEstimate(); });
     element("#setupForm").addEventListener("submit", (e) => { e.preventDefault(); void configure(); });
     element("#setupForm").addEventListener("keydown", (e) => { if(e.key==="Enter" && e.target instanceof HTMLSelectElement)e.preventDefault(); });
-    element("#setupBack").onclick = () => { void onReady(); };
+    element("#setupBack").onclick = () => { cancelEstimate(); void onReady(); };
     element("#cancelSetup").onclick = () => { void backend.cancelSetup(); };
     for (const button of document.querySelectorAll<HTMLButtonElement>("[data-setup-pick]")) button.onclick = async () => {
       const field = element<HTMLInputElement>(`#${button.dataset.setupPick}`);
-      const path = await open({ directory: true, defaultPath: field.value || undefined });
-      if (typeof path === "string") { await backend.rememberFolder(path); field.value = path; await updateEstimate(); }
+      try {
+        const path = await pickFolder(field.id === "setupModels" ? "models" : "songs", field.value, true);
+        if (path) { field.value = path; cancelEstimate(); await updateEstimate(); }
+      } catch (error) { showError(error); }
     };
     element("#importLibrary").onclick = async () => {
       await openLibraryAssistant("import", element<HTMLInputElement>("#setupSongs").value.trim(), configuration.hardware.platform, (songsDir) => {
         element<HTMLInputElement>("#setupSongs").value = songsDir;
         configuration.settings.songs_dir = songsDir;
+        cancelEstimate();
+        void updateEstimate();
         element("#importStatus").textContent = t("desktop_import_done");
         element<HTMLButtonElement>("#importLibrary").hidden = true;
       });
@@ -104,7 +120,7 @@ async function updateEstimate(preferredLanguage?: string): Promise<void> {
   }
   const selection = request();
   const unsupported = !configuration.settings.expert_mode && !configuration.recommended_profiles.length;
-  element<HTMLButtonElement>("#setupStart").disabled = unsupported;
+  element<HTMLButtonElement>("#setupStart").disabled = true;
   element("#lmRecommendation").textContent = `${t("desktop_recommended")}: ${configuration.hardware.recommended_lm}`;
   const models: {file:string;estimated_bytes:number}[] = configuration.manifest.models.filter((m) => m.kind === "required" || m.kind === selection.lm || (m.kind === "xl" && selection.xl));
   models.push(configuration.title_model);
@@ -113,7 +129,13 @@ async function updateEstimate(preferredLanguage?: string): Promise<void> {
   try {
     const estimate = await backend.estimate(selection); if (sequence !== estimateSequence) return;
     element("#spaceEstimate").textContent = `${t("desktop_space")}: ~${bytes(estimate.missing_bytes)} / ${bytes(estimate.free_bytes)}`;
-  } catch (error) { if (sequence === estimateSequence) element("#spaceEstimate").textContent = modelErrorText(error, t); }
+    element<HTMLButtonElement>("#setupStart").disabled = false;
+  } catch (error) {
+    if (sequence === estimateSequence) {
+      element("#spaceEstimate").textContent = pathErrorText(modelErrorText(error, t));
+      element<HTMLButtonElement>("#setupStart").disabled = true;
+    }
+  }
 }
 
 function setBusy(busy: boolean): void {
@@ -123,9 +145,10 @@ function setBusy(busy: boolean): void {
   document.body.dataset.settingUp = String(busy);
 }
 
-function showError(error: unknown): void { element("#setupError").textContent = modelErrorText(error, t); }
+function showError(error: unknown): void { element("#setupError").textContent = pathErrorText(modelErrorText(error, t)); }
 
 async function configure(): Promise<void> {
+  cancelEstimate();
   setBusy(true); element("#setupError").textContent = "";
   element<HTMLProgressElement>("#setupProgress").removeAttribute("value"); element("#setupProgressText").textContent = t("desktop_checking");
   try {

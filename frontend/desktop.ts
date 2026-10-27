@@ -1,6 +1,8 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { confirm, open } from "@tauri-apps/plugin-dialog";
+import { confirm } from "@tauri-apps/plugin-dialog";
+import { pickFolder, pathErrorText } from "./path-dialogs";
+import { notify } from "./dialogs";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { backend } from "./backend";
 import { element } from "./dom";
@@ -38,8 +40,10 @@ export async function initializeDesktop(): Promise<void> {
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-pick-folder]")) {
     button.onclick = async () => {
       const field = element<HTMLInputElement>(button.dataset.pickFolder!);
-      const folder = await open({ directory: true, defaultPath: field.value || undefined });
-      if (typeof folder === "string") { await backend.rememberFolder(folder); field.value = folder; field.dispatchEvent(new Event("change", { bubbles: true })); }
+      try {
+        const folder = await pickFolder("songs", field.value || field.placeholder, true);
+        if (folder) { field.value = folder; field.dispatchEvent(new Event("change", { bubbles: true })); }
+      } catch (error) { notify(pathErrorText(error)); }
     };
   }
 }

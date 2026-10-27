@@ -1,5 +1,6 @@
 pub mod admission;
 pub mod audio_export;
+pub mod audio_import;
 pub mod catalog;
 mod commands;
 pub mod configuration;
@@ -15,6 +16,7 @@ mod jobs;
 pub mod library;
 pub mod manifest;
 mod model_commands;
+pub mod paths;
 pub mod power;
 mod process_output;
 pub mod runtime;
@@ -110,6 +112,8 @@ pub fn run() {
             commands::check_update,
             commands::exit_app,
             commands::remember_folder,
+            paths::dialog_directory,
+            audio_import::pick_audio_file,
             model_commands::model_catalog,
             model_commands::use_models,
             model_commands::select_models,
