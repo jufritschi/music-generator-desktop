@@ -6,6 +6,14 @@ use crate::{
 use std::path::Path;
 use tokio_util::sync::CancellationToken;
 
+/// Exercise the real startup detector inside a signed bundle without opening user data or windows.
+pub fn startup_location() {
+    println!(
+        "{}",
+        serde_json::json!({ "installation_required": crate::launch_location::installation_required() })
+    );
+}
+
 // Check actual OS enforcement and inherited engine restrictions, not only the signing metadata.
 pub fn run(forbidden: &Path) -> Result<()> {
     if std::fs::read(forbidden).is_ok() {

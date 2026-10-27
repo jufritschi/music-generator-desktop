@@ -27,7 +27,7 @@ impl AppState {
         }
     }
 
-    pub fn changed(&self, app: &AppHandle) {
+    pub fn changed<R: tauri::Runtime>(&self, app: &AppHandle<R>) {
         let _ = app.emit("library-changed", ());
     }
 

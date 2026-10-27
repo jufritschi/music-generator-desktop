@@ -4,9 +4,14 @@ use crate::{
     state::AppState,
 };
 use std::{path::PathBuf, sync::Arc};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Runtime};
 
-fn report_progress(state: &AppState, app: &AppHandle, operation: &Operation, progress: Progress) {
+fn report_progress<R: Runtime>(
+    state: &AppState,
+    app: &AppHandle<R>,
+    operation: &Operation,
+    progress: Progress,
+) {
     if let Some(update) = operation.report(progress) {
         let _ = state
             .db
@@ -15,7 +20,7 @@ fn report_progress(state: &AppState, app: &AppHandle, operation: &Operation, pro
     }
 }
 
-pub async fn worker(state: Arc<AppState>, app: AppHandle) {
+pub async fn worker<R: Runtime>(state: Arc<AppState>, app: AppHandle<R>) {
     loop {
         if state.runtime.is_shutdown() {
             break;

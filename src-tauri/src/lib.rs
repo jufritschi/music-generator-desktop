@@ -13,6 +13,7 @@ pub mod form_preferences;
 pub mod hardware;
 pub mod import;
 mod jobs;
+mod launch_location;
 pub mod library;
 pub mod manifest;
 mod model_commands;
@@ -81,6 +82,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::bootstrap,
             startup::startup_status,
+            startup::startup_allowed,
             startup::splash_ready,
             startup::startup_error,
             startup::retry_startup,

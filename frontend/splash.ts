@@ -20,9 +20,12 @@ async function connect() {
 }
 
 element("#splashClose").onclick = () => { void invoke("exit_app").catch(failed); };
+element("#splashQuit").onclick = () => { void invoke("exit_app").catch(failed); };
 element("#splashRetry").onclick = async () => {
   element<HTMLButtonElement>("#splashRetry").disabled = true;
   try { await invoke("retry_startup"); } catch (error) { failed(error); }
 };
-setTimeout(() => { if (document.body.dataset.failed !== "true") element("#splashSlow").hidden = false; }, 15000);
+setTimeout(() => {
+  if (document.body.dataset.failed !== "true" && document.body.dataset.installationRequired !== "true") element("#splashSlow").hidden = false;
+}, 15000);
 void connect().catch(failed);

@@ -2405,6 +2405,7 @@ dependencies = [
  "chrono",
  "fs2",
  "futures-util",
+ "libc",
  "libloading 0.8.9",
  "mailparse",
  "objc2",

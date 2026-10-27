@@ -39,6 +39,12 @@ body[data-failed=true] .waveform rect { animation: none; }
 body[data-failed=true] .splash { padding-top: 27px; padding-bottom: 10px; }
 body[data-failed=true] .app-icon { width: 56px; height: 56px; }
 body[data-failed=true] h1 { margin: 17px 0 15px; }
+body[data-installation-required=true] .waveform rect { animation: none; }
+body[data-installation-required=true] .splash { padding-top: 28px; }
+body[data-installation-required=true] .app-icon { width: 56px; height: 56px; }
+body[data-installation-required=true] h1 { margin: 16px 0; }
+body[data-installation-required=true] #splashStatus { margin-bottom: 8px; color: #eee9e1; font-weight: 600; }
+.installation { max-width: 360px; margin: 0 0 18px; color: #b0b5bf; font-size: 13px; line-height: 1.55; }
 @keyframes waveform { 0% { transform: scaleY(.4); } 50% { transform: scaleY(1.15); } 100% { transform: scaleY(.7); } }
 @keyframes progress-travel { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 @media (prefers-reduced-motion: reduce) { .waveform rect, .progress span { animation: none; } .progress span { margin: auto; } }
