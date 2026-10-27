@@ -44,3 +44,7 @@ Nach diesem Fix wurde kein weiterer konkreter plattformspezifischer Blocker in d
 ## Grenzen dieser Abnahme
 
 Die hier dokumentierten Tests sind automatisierte Quell-/Paketvertragstests. Aktuelle native Screenshots, tatsächliche 0.1.2-Generierung, Datei-/Audioprüfung und Paketnachweise werden im [Hauptbericht](README.md) separat ergänzt. Die früheren Berichte zu Warnung und Header bleiben historische Zwischenstände mit ihren damaligen Testzahlen. Neue CI-Ergebnisse dürfen nur für die dazugehörige Revision ergänzt werden.
+
+## Intel-CI-Folgetest
+
+Im ersten Vierplattformlauf bestand die ARM64-Paketprüfung, aber ein Intel-Policytest erwartete nach Sessionende fälschlich Unknown statt der dort bewusst verwendeten CPU. Die Assertion ist jetzt plattformgerecht und prüft zusätzlich zwei Statuslesungen sowie den gestoppten, von altem Metal bereinigten Zustand. Fünf Policytests und Rustfmt bestehen lokal erneut. Runtimecode unverändert; die neue Vierplattform-CI muss den Intel-Nachweis liefern.

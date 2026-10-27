@@ -130,6 +130,14 @@ fn policy_uses_the_latest_session_after_device_detection() {
             }
         },
     );
-    assert_eq!(policy.backend, Backend::Unknown);
-    assert_eq!(policy.probed_backend, Backend::Unknown);
+    let expected = if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
+        Backend::Cpu
+    } else {
+        Backend::Unknown
+    };
+    assert_eq!(policy.backend, expected);
+    assert_eq!(policy.probed_backend, expected);
+    assert_eq!(reads.get(), 2);
+    assert_eq!(policy.backend_status.state, EngineState::Stopped);
+    assert_eq!(policy.backend_status.synthesis.backend, Observed::Unknown);
 }

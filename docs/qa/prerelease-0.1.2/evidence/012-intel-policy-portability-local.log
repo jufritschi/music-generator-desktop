@@ -1,0 +1,12 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.90s
+     Running tests/synthesis_policy.rs (src-tauri/target/debug/deps/synthesis_policy-023bd7dd076acd39)
+
+running 5 tests
+test policy_uses_the_latest_session_after_device_detection ... ok
+test legacy_iteration_defaults_follow_the_resolved_profile_instead_of_the_cpu_recommendation ... ok
+test language_model_execution_never_confirms_the_synthesis_device ... ok
+test current_metal_synthesis_overrides_an_unknown_probe_even_with_cpu_language_model ... ok
+test current_cpu_synthesis_overrides_gpu_availability_and_stopped_sessions_do_not ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
