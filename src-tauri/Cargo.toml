@@ -60,6 +60,11 @@ tauri = { version = "2", features = ["test"] }
 [dev-dependencies]
 tempfile = "3"
 axum = "0.8"
+tokio = { version = "1", features = ["test-util"] }
+
+[[test]]
+name = "export_lifecycle"
+harness = false
 
 [profile.release]
 lto = "thin"
