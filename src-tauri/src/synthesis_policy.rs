@@ -1,7 +1,12 @@
 //! Model-free device detection, isolated from the GUI because GPU drivers can crash or hang.
+use crate::engine::backend_status::Backend as BackendKind;
 use crate::{catalog::Selection, form_preferences::GenerationFormPreferences};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, process::Command, sync::Mutex, time::Duration};
+
+mod ggml;
+#[cfg(target_os = "macos")]
+mod macos;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -11,10 +16,35 @@ pub enum Backend {
     Unknown,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct Detection {
+    backend: Backend,
+    kind: BackendKind,
+}
+
+impl Detection {
+    fn new(kind: BackendKind) -> Self {
+        Self {
+            backend: match kind {
+                BackendKind::Cpu => Backend::Cpu,
+                BackendKind::Cuda | BackendKind::Vulkan | BackendKind::Metal => Backend::Gpu,
+                BackendKind::Unknown => Backend::Unknown,
+            },
+            kind,
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct Policy {
     pub backend: Backend,
+    pub probed_backend: Backend,
+    /// Independently probed availability, never an unconfirmed inference observation.
+    pub detected_backend: BackendKind,
+    pub lm_device: String,
+    pub backend_status: crate::engine::backend_status::BackendStatus,
     pub cpu_iteration_behavior: crate::types::CpuIterationBehavior,
+    pub legacy_inference_steps: u32,
     pub recommended_steps: u32,
     pub defaults: GenerationFormPreferences,
 }
@@ -33,12 +63,49 @@ pub fn policy(backend: Backend, selection: &Selection) -> Policy {
     let recommended_steps = recommended_steps(backend, steps);
     Policy {
         backend,
+        probed_backend: backend,
+        detected_backend: if backend == Backend::Cpu {
+            BackendKind::Cpu
+        } else {
+            BackendKind::Unknown
+        },
+        lm_device: "auto".into(),
+        backend_status: crate::engine::backend_status::BackendStatus::inactive(false),
         cpu_iteration_behavior: Default::default(),
+        legacy_inference_steps: crate::generation_limits::effective_steps(
+            None,
+            &selection.synthesis,
+        ),
         recommended_steps,
         defaults: GenerationFormPreferences {
             inference_steps: recommended_steps,
             ..Default::default()
         },
+    }
+}
+
+pub fn session_policy(
+    probed: Backend,
+    selection: &Selection,
+    status: &crate::engine::backend_status::BackendStatus,
+) -> Policy {
+    let mut result = policy(observed_backend(status).unwrap_or(probed), selection);
+    result.probed_backend = probed;
+    result.backend_status = status.clone();
+    result
+}
+
+/// Only current synthesis execution can override device availability; LM placement is independent.
+fn observed_backend(status: &crate::engine::backend_status::BackendStatus) -> Option<Backend> {
+    use crate::engine::backend_status::{Backend as Observed, EngineState, ObservationState};
+    if status.state != EngineState::Running || status.synthesis.state != ObservationState::Confirmed
+    {
+        return None;
+    }
+    match status.synthesis.backend {
+        Observed::Cuda | Observed::Vulkan | Observed::Metal => Some(Backend::Gpu),
+        Observed::Cpu => Some(Backend::Cpu),
+        Observed::Unknown => None,
     }
 }
 
@@ -51,18 +118,39 @@ pub fn recommended_steps(backend: Backend, steps: u32) -> u32 {
 }
 
 #[derive(Default)]
-pub struct Probe(Mutex<Option<Backend>>);
+pub struct Probe(Mutex<Option<Detection>>);
 
 impl Probe {
+    pub fn session_policy(
+        &self,
+        resources: &Path,
+        selection: &Selection,
+        refresh: bool,
+        status: impl Fn() -> crate::engine::backend_status::BackendStatus,
+    ) -> Policy {
+        let probed = if observed_backend(&status()).is_some() {
+            self.cached()
+        } else {
+            self.inspect(resources, refresh)
+        };
+        let mut policy = session_policy(probed, selection, &status());
+        policy.detected_backend = self.cached_detection().kind;
+        policy
+    }
+
     pub fn cached(&self) -> Backend {
+        self.cached_detection().backend
+    }
+
+    fn cached_detection(&self) -> Detection {
         if crate::hardware::cpu_only() {
-            Backend::Cpu
+            Detection::new(BackendKind::Cpu)
         } else {
             self.0
                 .try_lock()
                 .ok()
                 .and_then(|value| *value)
-                .unwrap_or(Backend::Unknown)
+                .unwrap_or(Detection::new(BackendKind::Unknown))
         }
     }
 
@@ -73,15 +161,17 @@ impl Probe {
         let mut cached = self.0.lock().unwrap();
         if !refresh {
             if let Some(backend) = *cached {
-                return backend;
+                return backend.backend;
             }
         }
-        let backend = self.run(resources).unwrap_or(Backend::Unknown);
+        let backend = self
+            .run(resources)
+            .unwrap_or(Detection::new(BackendKind::Unknown));
         *cached = Some(backend);
-        backend
+        backend.backend
     }
 
-    fn run(&self, resources: &Path) -> Option<Backend> {
+    fn run(&self, resources: &Path) -> Option<Detection> {
         let executable = std::env::current_exe().ok()?;
         #[cfg(target_os = "macos")]
         let executable = {
@@ -97,6 +187,7 @@ impl Probe {
             Command::new(executable)
                 .arg("--synthesis-backend-probe")
                 .arg(&engine)
+                .arg("--details")
                 .current_dir(&engine),
             Duration::from_secs(5),
         )?;
@@ -113,140 +204,26 @@ pub fn cli() -> Option<i32> {
     if args.next().as_deref() != Some(std::ffi::OsStr::new("--synthesis-backend-probe")) {
         return None;
     }
-    let result = args.next().and_then(|folder| {
-        let cpu = args.next().as_deref() == Some(std::ffi::OsStr::new("--cpu"));
+    let folder = args.next();
+    let options: Vec<_> = args.collect();
+    let details = options.iter().any(|option| option == "--details");
+    let result = folder.and_then(|folder| {
+        let cpu = options.iter().any(|option| option == "--cpu");
         // SAFETY: only the pinned engine's GGML C ABI is loaded, in this disposable child.
-        unsafe { detect(Path::new(&folder), cpu).ok() }
+        unsafe { ggml::detect(Path::new(&folder), cpu).ok() }
     });
     match result {
         Some(backend) => {
-            println!("{}", serde_json::to_string(&backend).unwrap());
+            let result = if details {
+                serde_json::to_string(&backend)
+            } else {
+                serde_json::to_string(&backend.backend)
+            };
+            println!("{}", result.unwrap());
             Some(0)
         }
         None => Some(1),
     }
-}
-
-unsafe fn detect(
-    folder: &Path,
-    force_cpu: bool,
-) -> std::result::Result<Backend, Box<dyn std::error::Error>> {
-    use std::ffi::{c_char, c_void, CStr, CString};
-    type Handle = *mut c_void;
-    // Exact exported signatures are shared by both GGML revisions in models/manifest.json.
-    let library = libloading::Library::new(folder.join(if cfg!(windows) {
-        "ggml.dll"
-    } else if cfg!(target_os = "macos") {
-        "libggml.dylib"
-    } else {
-        "libggml.so"
-    }))?;
-    // Windows GetProcAddress does not search dependency DLLs. Backend handles live
-    // in ggml-base, while the registry/device-selection functions live in ggml.
-    let base = libloading::Library::new(folder.join(if cfg!(windows) {
-        "ggml-base.dll"
-    } else if cfg!(target_os = "macos") {
-        "libggml-base.dylib"
-    } else {
-        "libggml-base.so"
-    }))?;
-    let load =
-        library.get::<unsafe extern "C" fn(*const c_char)>(b"ggml_backend_load_all_from_path\0")?;
-    let best = library.get::<unsafe extern "C" fn() -> Handle>(b"ggml_backend_init_best\0")?;
-    let named = library.get::<unsafe extern "C" fn(*const c_char, *const c_char) -> Handle>(
-        b"ggml_backend_init_by_name\0",
-    )?;
-    let name = base.get::<unsafe extern "C" fn(Handle) -> *const c_char>(b"ggml_backend_name\0")?;
-    let free = base.get::<unsafe extern "C" fn(Handle)>(b"ggml_backend_free\0")?;
-    let path = CString::new(folder.to_string_lossy().as_bytes())?;
-    if force_cpu {
-        load_cpu_backend(folder, &library)?;
-    } else {
-        load(path.as_ptr());
-    }
-    // Older Unix engines honor GGML_BACKEND; the pinned Windows engine uses --device.
-    let forced = if force_cpu {
-        Some("CPU".to_owned())
-    } else if cfg!(windows) {
-        None
-    } else {
-        std::env::var("GGML_BACKEND").ok()
-    };
-    let forced = forced.map(CString::new).transpose()?;
-    let backend = match forced {
-        Some(device) => named(device.as_ptr(), std::ptr::null()),
-        None => best(),
-    };
-    if backend.is_null() {
-        return Err("No synthesis backend initialized".into());
-    }
-    let label = name(backend);
-    let result = if label.is_null() {
-        Backend::Unknown
-    } else if CStr::from_ptr(label).to_bytes() == b"CPU" {
-        Backend::Cpu
-    } else {
-        Backend::Gpu
-    };
-    free(backend);
-    Ok(result)
-}
-
-/// Match GGML's CPU-variant scoring without initializing unrelated GPU drivers.
-/// Used only by the explicit --cpu package check; automatic selection loads all backends.
-unsafe fn load_cpu_backend(
-    folder: &Path,
-    registry: &libloading::Library,
-) -> std::result::Result<(), Box<dyn std::error::Error>> {
-    use std::ffi::{c_char, c_void, CString};
-    let prefix = if cfg!(windows) {
-        "ggml-cpu"
-    } else {
-        "libggml-cpu"
-    };
-    // GGML backend modules use .so even on macOS.
-    let extension = if cfg!(windows) { "dll" } else { "so" };
-    let mut best = None;
-    let mut best_score = 0;
-    let mut fallback = None;
-    for entry in std::fs::read_dir(folder)? {
-        let path = entry?.path();
-        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
-            continue;
-        };
-        if path.extension().and_then(|s| s.to_str()) != Some(extension) {
-            continue;
-        }
-        if stem == prefix {
-            fallback = Some(path);
-            continue;
-        }
-        if !stem.starts_with(&format!("{prefix}-")) {
-            continue;
-        }
-        // These are the pinned runtime's CPU variants, scored just as load_best does.
-        if let Ok(candidate) = libloading::Library::new(&path) {
-            if let Ok(score) =
-                candidate.get::<unsafe extern "C" fn() -> i32>(b"ggml_backend_score\0")
-            {
-                let score = score();
-                if score > best_score {
-                    best_score = score;
-                    best = Some(path);
-                }
-            }
-        }
-    }
-    let path = best
-        .or(fallback)
-        .ok_or("No compatible CPU backend module")?;
-    let path = CString::new(path.to_string_lossy().as_bytes())?;
-    let load = registry
-        .get::<unsafe extern "C" fn(*const c_char) -> *mut c_void>(b"ggml_backend_load\0")?;
-    if load(path.as_ptr()).is_null() {
-        return Err("CPU backend module could not be loaded".into());
-    }
-    Ok(())
 }
 
 #[cfg(test)]

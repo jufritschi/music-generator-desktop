@@ -162,7 +162,29 @@ impl Database {
                 })
             },
         )?;
-        Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+        let mut songs = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+        drop(con);
+        for song in &mut songs {
+            if song.status != "done" {
+                continue;
+            }
+            let mut metadata = song.result_meta.clone().unwrap_or_else(|| json!({}));
+            if let Some(path) = song.path.as_deref() {
+                let _ = crate::audio_facts::enrich_metadata(
+                    Path::new(path),
+                    &song.params,
+                    &mut metadata,
+                );
+            } else {
+                crate::audio_facts::unknown_duration(&song.params, &mut metadata);
+            }
+            if song.engine.as_deref() == Some("acestep_cpp") {
+                crate::generation_limits::enrich_metadata(&song.params, &mut metadata);
+            }
+            song.result_meta = Some(metadata);
+        }
+        Ok(songs)
     }
 
     pub fn song(&self, sid: &str) -> Result<Song> {
@@ -182,7 +204,6 @@ impl Database {
         if !(1..=50).contains(&req.variants)
             || !req.duration.is_finite()
             || !(0.0..=600.0).contains(&req.duration)
-            || req.inference_steps > 200
             || req.bpm > 300
             || req.seed.checked_add(req.variants as i64).is_none()
             || req
@@ -213,6 +234,15 @@ impl Database {
         } else {
             req.lyrics.trim()
         };
+        let selection = if let Some(selection) = &req.model_selection {
+            selection.clone()
+        } else {
+            crate::catalog::Selection::from_settings(&self.settings()?)
+        };
+        let steps = crate::generation_limits::effective_steps(
+            Some(u64::from(req.inference_steps)),
+            &selection.synthesis,
+        );
         let mut con = self.lock();
         let tx = con.transaction()?;
         let folder = req.folder_id.as_ref().filter(|f| {
@@ -231,6 +261,7 @@ impl Database {
                 req.seed + i as i64
             };
             let mut p = serde_json::to_value(req)?;
+            p["inference_steps"] = json!(steps);
             p["caption"] = json!(caption);
             p["lyrics"] = json!(lyrics);
             p["seed"] = json!(seed);

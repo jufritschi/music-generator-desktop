@@ -1,0 +1,351 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.31s
+     Running unittests src/lib.rs (src-tauri/target/debug/deps/music_generator-84161b2af6327d80)
+
+running 66 tests
+test audio_import::tests::native_selection_reads_supported_audio_and_bounds_memory ... ok
+test audio_import::tests::native_selection_rejects_a_fifo_without_waiting_for_a_writer ... ok
+test configuration::tests::cancellation_after_playback_authorization_still_preserves_the_library ... ok
+test configuration::tests::mixed_settings_and_preference_write_failures_are_atomic ... ok
+test configuration::tests::cpu_decision_can_be_saved_together_with_regular_settings ... ok
+test configuration::tests::combined_preferences_roll_back_atomically_on_storage_failure ... ok
+test configuration::tests::cancellation_at_the_end_of_the_test_does_not_move_songs ... ok
+test configuration::tests::denied_playback_access_leaves_the_old_folder_and_settings_intact ... ok
+test configuration::tests::an_aborted_setup_validation_releases_admission_without_losing_configuration ... ok
+test configuration::tests::settings_authorization_failure_changes_neither_files_nor_other_settings ... ok
+test engine::client::tests::timeout_includes_stage_rounded_minutes_and_settings_guidance ... ok
+test engine::manager::tests::changing_the_device_clears_the_old_backend_from_health ... ok
+test engine::manager::tests::timing_changes_keep_the_resident_engine_and_its_diagnostics ... ok
+test engine::diagnostics::tests::missing_and_truncated_logs_and_direct_engine_errors_are_handled ... ok
+test engine::diagnostics::tests::only_new_synthesis_lines_explain_failures ... ok
+test configuration::tests::move_reports_byte_progress_and_can_cancel_inside_a_file ... ok
+test configuration::tests::an_aborted_settings_caller_does_not_release_an_inflight_commit ... ok
+test engine::manager::tests::healthy_servers_do_not_confirm_a_backend_until_models_execute ... ok
+test configuration::tests::cpu_decision_is_targeted_durable_and_editable_while_generating ... ok
+test configuration::tests::device_changes_are_durable_and_rejected_during_engine_work ... ok
+test hardware::tests::settings_and_admission_share_one_immutable_hardware_snapshot ... ok
+test launch_location::macos::tests::unknown_device_has_no_disk_image_classification ... ok
+test launch_location::tests::allows_regular_installations_and_writable_images ... ok
+test launch_location::tests::blocks_images_independently_of_volume_name_or_mount_directory ... ok
+test launch_location::tests::does_not_guess_when_metadata_is_missing_or_cyclic ... ok
+test launch_location::tests::follows_translocation_to_the_original_volume_without_blocking_copied_apps ... ok
+test configuration::tests::legacy_dit_patch_cannot_activate_an_advanced_profile_without_expert_mode ... ok
+test paths::tests::denied_folder_requires_authorization_but_remains_a_native_dialog_hint ... ok
+test paths::tests::directory_start_keeps_purposes_separate_and_resolves_new_input ... ok
+test configuration::tests::move_preserves_partial_import_metadata_and_moves_only_available_audio ... ok
+test paths::tests::setup_checks_both_folders_without_creating_them ... ok
+test process_output::tests::probe_fixture ... ignored, subprocess fixture for bounded startup probes
+test runtime::tests::blocking_work_keeps_exclusive_admission_after_its_caller_is_aborted ... ok
+test runtime::tests::cancellation_is_scoped_and_does_not_leak_into_the_next_job ... ok
+test runtime::tests::dropping_an_aborted_task_clears_its_operation_and_progress ... ok
+test runtime::tests::operations_exclude_each_other_and_release_on_error ... ok
+test runtime::tests::shutdown_cancels_active_work_and_rejects_new_and_waiting_operations ... ok
+test form_preferences::tests::active_generation_does_not_block_or_get_cancelled_by_preferences ... ok
+test configuration::tests::failed_or_cancelled_hardware_test_keeps_the_existing_library ... ok
+test form_preferences::tests::invalid_writes_do_not_replace_saved_preferences ... ok
+test form_preferences::tests::new_preferences_cannot_persist_iterations_above_the_engine_limit ... ok
+test form_preferences::tests::saved_iteration_values_above_the_engine_limit_restore_as_one_hundred ... ok
+test form_preferences::tests::missing_damaged_and_partially_invalid_values_use_defaults ... ok
+test form_preferences::tests::device_defaults_fill_only_missing_or_invalid_values ... ok
+test updates::tests::linux_updates_keep_the_installed_backend_when_both_assets_exist ... ok
+test configuration::tests::preference_writes_and_queue_admission_have_a_single_order ... ok
+test updates::tests::update_links_are_limited_to_the_desktop_release_repository ... ok
+test updates::tests::updates_select_the_correct_architecture ... ok
+test synthesis_policy::tests::model_recommendations_are_capped_only_for_cpu_or_unknown ... ok
+test startup::tests::blocked_retry_cannot_reload_main_or_clear_the_installation_requirement ... ok
+test windows::tests::windows_10_builds_with_update_revisions_need_runtime_permissions ... ok
+test windows::tests::windows_11_older_windows_and_invalid_output_do_not_match ... ok
+test startup::tests::installed_start_can_complete_normally ... ok
+test synthesis_policy::tests::missing_runtime_is_unknown_and_never_assumed_gpu ... ok
+test form_preferences::tests::preferences_survive_reopening_and_unrelated_settings_writes ... ok
+test startup::tests::blocked_prepare_returns_before_opening_data_or_creating_application_state ... ok
+test startup::tests::blocked_completion_cannot_reveal_main_or_destroy_the_splash ... ok
+test process_output::tests::captures_successful_output_and_rejects_failed_probes ... ok
+test configuration::tests::settings_use_the_same_authorize_before_move_contract_as_setup ... ok
+test configuration::tests::setup_without_a_folder_change_preserves_queued_jobs ... ok
+test setup::tests::invalid_folder_input_preserves_saved_configuration_without_starting_setup ... ok
+test configuration::tests::successful_setup_grants_playback_before_moving_and_saving ... ok
+test configuration::tests::sqlite_failure_rolls_back_copies_and_the_entire_settings_change ... ok
+test configuration::tests::invalid_settings_fail_before_authorization_or_side_effects ... ok
+test configuration::tests::expert_preference_can_change_during_engine_work_but_not_exclusive_operations ... ok
+test process_output::tests::kills_and_reaps_a_slow_probe ... ok
+
+test result: ok. 65 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running unittests src/bin/music-engine-supervisor.rs (src-tauri/target/debug/deps/music_engine_supervisor-8d2ce7cb7cadb097)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (src-tauri/target/debug/deps/music_generator-0652fc3581ae7214)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/audio_duration.rs (src-tauri/target/debug/deps/audio_duration-566a1871896c8dbb)
+
+running 10 tests
+test invalid_audio_is_rejected_instead_of_becoming_a_finished_song ... ok
+test failed_optional_retry_preserves_the_original_audio_with_an_honest_warning ... ok
+test cancellation_during_the_retry_cancels_that_job_and_never_synthesizes ... ok
+test retry_limit_keeps_the_longer_audio_and_never_changes_music_seed_or_effective_steps ... ok
+test lm_shortfall_gets_one_distinct_seed_retry_before_a_single_synthesis ... ok
+test actual_wav_duration_replaces_the_lm_claim_without_rewriting_the_request ... ok
+test empty_lm_codes_retry_once_then_fail_clearly_if_both_attempts_are_empty ... ok
+test overproduction_is_capped_and_normal_duration_rounding_does_not_retry ... ok
+test optional_retry_respects_remaining_lm_time_and_cancels_its_timed_out_job ... ok
+test optional_retry_budget_includes_waiting_for_the_job_id ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/audio_facts.rs (src-tauri/target/debug/deps/audio_facts-80faea79519fb2ad)
+
+running 4 tests
+test invalid_containers_formats_and_pcm_frame_lengths_are_rejected ... ok
+test unavailable_audio_never_presents_old_lm_duration_as_measured ... ok
+test historical_metadata_is_measured_without_changing_requests_or_audio_and_cache_tracks_changes ... ok
+test pcm_headers_provide_actual_duration_and_support_padded_metadata_chunks ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/backend_status.rs (src-tauri/target/debug/deps/backend_status-73d508d0a4a17820)
+
+running 7 tests
+test windows_cuda_compatibility_is_bound_to_the_delivered_archive ... ok
+test status_confirms_only_current_model_execution_and_keeps_lm_separate ... ok
+test current_cuda_initialization_failure_explains_vulkan_but_a_new_start_discards_it ... ok
+test cpu_language_model_explains_user_choice_and_selftest_fallback_without_changing_synthesis ... ok
+test cuda_plugin_load_failures_are_explained_without_attributing_unrelated_backend_errors ... ok
+test cuda_metal_and_cpu_are_confirmed_from_execution_and_unknown_causes_stay_unknown ... ok
+test health_reports_not_started_without_launching_or_reading_old_engine_logs ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/catalog.rs (src-tauri/target/debug/deps/catalog-91a221d2ee9bf896)
+
+running 8 tests
+test retired_provider_without_a_saved_ace_profile_uses_verified_catalog_defaults ... ok
+test pinned_catalog_covers_all_generation_variants_and_matches_starter_checksums ... ok
+test provider_role_and_path_validation_cannot_route_unsupported_weights_to_ace_step ... ok
+test compatibility_uses_the_complete_profile_and_keeps_cpu_only_intel_available ... ok
+test removed_providers_are_absent_and_cannot_enter_the_queue ... ok
+test retired_provider_settings_restore_ace_step_without_rewriting_old_songs_or_files ... ok
+test model_changes_survive_restart_without_changing_queue_snapshots_or_song_values ... ok
+test activation_is_atomic_on_checksum_failure_and_cancellation_then_reuses_verified_files_offline ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/device.rs (src-tauri/target/debug/deps/device-2f9788b13463b2a0)
+
+running 2 tests
+test cpu_selection_supports_both_engine_cli_generations ... ok
+test a_hanging_device_probe_cannot_silently_select_the_gpu ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.00s
+
+     Running tests/download.rs (src-tauri/target/debug/deps/download-071cc8ec0fdeeccb)
+
+running 8 tests
+test insufficient_disk_and_invalid_ranges_are_rejected ... ok
+test cancellation_keeps_partial_data_for_retry ... ok
+test verified_existing_model_needs_no_network ... ok
+test wrong_range_does_not_modify_existing_partial_data ... ok
+test wrong_checksums_are_never_promoted_to_models ... ok
+test complete_partial_file_recovers_after_verification_was_interrupted ... ok
+test a_server_ignoring_range_restarts_without_appending ... ok
+test resumes_partial_content_at_the_exact_offset ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/engine.rs (src-tauri/target/debug/deps/engine-5d1c90f9d837e64d)
+
+running 10 tests
+test gpu_selftest_rejects_empty_and_repetitive_codes ... ok
+test multipart_preserves_binary_audio_and_extracts_metadata ... ok
+test analysis_multipart_contains_selected_model_names_and_original_audio ... ok
+test codes_obey_requested_duration_and_the_ten_minute_ceiling ... ok
+test generation_chains_lm_and_synthesis_and_preserves_parameters ... ok
+test generation_trims_lm_overproduction_before_synthesis ... ok
+test user_cancellation_cancels_the_engine_job ... ok
+test timeout_cancels_the_engine_job ... ok
+test synthesis_errors_use_new_logs_for_failed_jobs_http_and_missing_audio ... ok
+test closing_the_supervisor_pipe_terminates_the_engine ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+     Running tests/engine_progress.rs (src-tauri/target/debug/deps/engine_progress-cbaa221482ee167b)
+
+running 5 tests
+test logs_are_scoped_to_the_job_and_expose_only_measured_steps ... ok
+test sse_log_lines_handle_fragmented_utf8_crlf_comments_and_size_limits ... ok
+test engines_without_logs_still_finish_with_indeterminate_progress ... ok
+test streaming_progress_preserves_timeout_guidance_and_job_cancellation ... ok
+test progress_stream_reconnects_and_keeps_result_polling_authoritative ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.03s
+
+     Running tests/expert_mode.rs (src-tauri/target/debug/deps/expert_mode-94c82193dba1b0e8)
+
+running 9 tests
+test recommendations_use_complete_profile_ram_and_recommended_language_size ... ok
+test wizard_only_accepts_recommended_starter_profiles_without_expert_mode ... ok
+test creator_selection_rejects_missing_models_without_downloading_or_changing_defaults ... ok
+test defaults_and_legacy_settings_are_disabled_and_both_values_survive_restart ... ok
+test creator_selection_uses_verified_files_offline_and_keeps_queue_snapshots ... ok
+test all_families_and_precisions_require_expert_mode_except_hardware_recommendations ... ok
+test forbidden_profile_installation_does_not_download_or_change_settings ... ok
+test disabling_expert_mode_preserves_finished_audio_and_exports ... ok
+test disabling_preserves_running_and_queued_snapshots_but_blocks_new_work_and_retries ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/exports.rs (src-tauri/target/debug/deps/exports-4a90dec507ba93c7)
+
+running 8 tests
+test dialog_filenames_cannot_replace_the_export_directory ... ok
+test first_export_starts_in_downloads_with_the_requested_filename ... ok
+test invalid_export_preferences_fall_back_without_changing_other_settings ... ok
+test unavailable_mp3_converter_does_not_damage_existing_files ... ok
+test remembering_failure_does_not_prevent_export ... ok
+test selected_export_directory_is_shared_and_survives_restart_even_after_export_failure ... ok
+test wav_audio_and_zip_preserve_original_audio_bytes ... ok
+test zip_export_with_only_the_destination_writable ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/generation_limits.rs (src-tauri/target/debug/deps/generation_limits-84e0c720df050be2)
+
+running 3 tests
+test retry_keeps_historical_requests_while_execution_uses_the_supported_limit ... ok
+test new_queue_snapshots_use_the_iterations_the_pinned_engine_can_execute ... ok
+test legacy_engine_defaults_follow_the_selected_model_including_hybrid_turbo_models ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/generation_parameters.rs (src-tauri/target/debug/deps/generation_parameters-daec7244406d9e04)
+
+running 2 tests
+test device_settings_preserve_queued_parameters_and_the_next_request ... ok
+test lm_receives_requested_caption_and_duration_without_rewriting_saved_parameters ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/historical_audio.rs (src-tauri/target/debug/deps/historical_audio-9ba8c0fb848f36a5)
+
+running 2 tests
+test historical_results_show_measured_audio_and_effective_steps_without_rewriting_history ... ok
+test missing_or_damaged_historical_audio_does_not_present_the_request_as_measured_duration ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/import.rs (src-tauri/target/debug/deps/import-15f52f85e40908b2)
+
+running 15 tests
+test unrelated_database_is_not_silently_migrated_into_an_empty_library ... ok
+test wrong_song_folder_gets_actionable_issue_without_parent_search ... ok
+test failed_import_leaves_the_destination_empty ... ok
+test denied_audio_access_cannot_be_bypassed_with_partial_import ... ok
+test sparse_audio_larger_than_free_space_is_rejected_before_copying ... ok
+test invalid_source_filename_and_target_symlinks_are_rejected ... ok
+test import_unsandboxed_desktop_profile_preserves_source_and_reuses_model_location ... ok
+test import_copies_audio_metadata_and_wal_without_touching_the_source ... ok
+test sqlite_commit_failure_removes_only_imported_copies ... ok
+test import_old_library_adds_start_time_only_to_the_copy ... ok
+test source_and_target_symlinks_cannot_escape_or_overwrite_files ... ok
+test data_folder_and_corrected_external_audio_folder_are_supported ... ok
+test selected_target_is_used_before_setup_and_survives_restart ... ok
+test collision_same_folder_and_cancellation_preserve_existing_files_and_settings ... ok
+test partial_import_retains_missing_metadata_without_playback_or_exports ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/intel_mac.rs (src-tauri/target/debug/deps/intel_mac-e7e3d9bea4e6470e)
+
+running 1 test
+test intel_mac_uses_one_cpu_server_even_with_saved_gpu_fallback_or_cpu_preference ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/library.rs (src-tauri/target/debug/deps/library-b7bbb435a0fb0974)
+
+running 12 tests
+test imported_paths_cannot_escape_the_song_directory ... ok
+test empty_prompt_and_invalid_variants_are_rejected_atomically ... ok
+test interrupted_generation_is_resumed_after_reopening ... ok
+test queue_is_fifo_and_keeps_variant_seeds ... ok
+test cancellation_cannot_be_overwritten_by_a_late_result ... ok
+test folders_favorites_and_deletion_preserve_songs ... ok
+test folder_move_rolls_back_on_collision ... ok
+test legacy_start_time_migration_preserves_saved_values_and_parameter_bytes ... ok
+test start_times_follow_claims_retries_and_resumed_jobs_without_changing_parameters ... ok
+test fresh_sampling_defaults_do_not_rewrite_stored_songs_on_restart_or_retry ... ok
+test visible_prompts_and_combined_captions_survive_restart_for_every_variant ... ok
+test direct_lookup_and_export_work_beyond_the_display_limit ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/startup.rs (src-tauri/target/debug/deps/startup-4dc6d3694eabf42d)
+
+running 1 test
+test completed_setup_survives_restart_without_models_or_engine_startup ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/synthesis_policy.rs (src-tauri/target/debug/deps/synthesis_policy-023bd7dd076acd39)
+
+running 5 tests
+test policy_uses_the_latest_session_after_device_detection ... ok
+test language_model_execution_never_confirms_the_synthesis_device ... ok
+test current_metal_synthesis_overrides_an_unknown_probe_even_with_cpu_language_model ... ok
+test legacy_iteration_defaults_follow_the_resolved_profile_instead_of_the_cpu_recommendation ... ok
+test current_cpu_synthesis_overrides_gpu_availability_and_stopped_sessions_do_not ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/synthesis_probe_macos.rs (src-tauri/target/debug/deps/synthesis_probe_macos-07ecbc091d3ed6f5)
+
+running 4 tests
+test missing_metal_runtime_does_not_claim_gpu_availability ... ok
+test explicit_cpu_and_disabled_metal_do_not_use_the_available_gpu ... ok
+test automatic_macos_probe_does_not_wait_for_cold_shader_compilation ... ok
+test detailed_probe_reports_the_actual_backend_kind_without_changing_legacy_output ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.73s
+
+     Running tests/titles.rs (src-tauri/target/debug/deps/titles-5be7902315ec7d64)
+
+running 7 tests
+test title_output_is_clean_and_preserves_non_latin_languages ... ok
+test finished_lyrics_take_priority_and_instrumentals_use_the_prompt ... ok
+test starter_model_choices_share_exactly_one_pinned_title_model ... ok
+test unicode_input_is_bounded_without_losing_the_final_chorus ... ok
+test cancelled_title_install_never_fetches_or_changes_provider_settings ... ok
+test failed_titling_keeps_the_finished_audio_and_survives_restart ... ok
+test auto_title_is_atomic_and_never_rewrites_manual_titles_or_saved_parameters ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/upstream_settings.rs (src-tauri/target/debug/deps/upstream_settings-4c0c4c4a2384e5e9)
+
+running 1 test
+test device_export_and_timeout_survive_restart_without_overwriting_fallback ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/verification.rs (src-tauri/target/debug/deps/verification-8f4b81107f647974)
+
+running 4 tests
+test damaged_cache_is_rebuilt_with_visible_verification_progress ... ok
+test verified_models_are_reused_after_reopening_the_cache ... ok
+test cancellation_during_verification_does_not_cache_an_unfinished_check ... ok
+test changed_models_and_manifest_checksums_are_rechecked ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests music_generator
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

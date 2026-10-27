@@ -1,4 +1,4 @@
-import { startGeneration, loadGenerationPolicy, updateCpuWarnings } from "./generation-policy";
+import { startGeneration, loadGenerationPolicy, updateCpuWarnings, updateObservedSynthesis, generationPolicyVersion } from "./generation-policy";
 import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
 import { extractStyleTags } from "./style-tags";
 import { measureMelody, describeIdea, toWav } from "./melody";
@@ -15,13 +15,15 @@ import { samplingForSong } from "./song-sampling";
 import { initializeGenerationFormPreferences, captureGenerationFormPreferences } from "./form-preferences";
 import { songErrorKey } from "./song-errors";
 import { generationSeconds } from "./song-timing";
+import { audioTime, songDuration, songDurationWarning, songIterations } from "./song-result";
+import "./song-result-i18n";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { startLibrarySync } from "./library-sync";
 import { progressText, progressBar } from "./progress";
 import { notify as alert, askName } from "./dialogs";
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const fmt = (sec) => (isFinite(sec) ? `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}` : "");
+const fmt = (sec) => isFinite(sec) ? audioTime(sec) : "";
 // Ansage für Screenreader (VoiceOver, NVDA …): unsichtbare Statuszeile; urgent = sofort, unterbricht (Fehler)
 function announce(text, urgent = false) {
   const el = $(urgent ? "#srAlert" : "#srStatus");
@@ -214,7 +216,7 @@ function fillForm(s) {
   syncLyrics(); $("#lyricsBox").open = !form.instrumental.checked && !!(p.lyrics || "").trim();
   form.duration.value = p.duration || 90;
   form.bpm.value = p.bpm || form.bpm.min;
-  const sampling = samplingForSong(p);
+  const sampling = samplingForSong(p, generationModels());
   form.inference_steps.value = sampling.inference_steps;
   form.lm_temperature.value = sampling.lm_temperature;
   showDur(); updateCpuWarnings();
@@ -434,13 +436,14 @@ function render() {
   if (!songs.length) { lib.innerHTML = `<div class="empty">${t("empty")}</div>`; return; }
   lib.innerHTML = songs.map((s, i) => {
     const m = s.result_meta || {}, p = s.params || {};
+    const iterations = songIterations(s), duration = songDuration(s), durationWarning = songDurationWarning(s);
     const newGroup = i > 0 && songs[i - 1].group_id !== s.group_id;
     const title = (s.title || s.caption.split(",").slice(0, 3).join(",")) + (s.letter ? ` ${s.letter}` : "");
     const meta = [
       m.bpm && `${m.bpm}BPM`,
-      p.inference_steps ? `${p.inference_steps}IT` : null,
+      iterations ? `${iterations}IT` : null,
       p.lm_temperature != null ? `${(+p.lm_temperature).toFixed(1)}VAR` : null,
-      m.keyscale, m.duration && fmt(m.duration),
+      m.keyscale, duration && audioTime(duration),
     ].filter(Boolean).join(" · ");
     const playing = s.id === currentId && ws?.isPlaying();
     let left, state = "";
@@ -457,6 +460,7 @@ function render() {
     // Vom Modell geschriebener Text (nur bei Songs mit Gesang)
     if (s.status === "done" && m.title_generation_error) state += `<div class="s err" title="${esc(m.title_generation_error)}">${t("title_failed")}</div>`;
     if (s.audio_missing) state = `<div class="s err">${esc(t("import_audio_missing"))}</div>`;
+    if (s.status === "done" && !s.audio_missing && durationWarning) state += `<div class="s duration-warning" role="note">${esc(t(`duration_${durationWarning.code}`, audioTime(durationWarning.actual_seconds), audioTime(durationWarning.requested_seconds)))}</div>`;
     const lyr = s.status === "done" && s.lyrics !== "[Instrumental]" && /[^\s\[\]]/.test((m.lyrics || "").replace(/\[[^\]]*\]/g, "")) ? m.lyrics.trim() : "";
     const actions = [
       s.status === "done" && `<button class="sek icon ${s.favorite ? "on" : ""}" data-a="fav" title="${t("fav")}">${s.favorite ? "★" : "☆"}</button>`,
@@ -507,7 +511,7 @@ $("#library").addEventListener("click", async (e) => {
   if (a === "more") {
     const p = s.params;
     try {
-      await backend.generate({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id, folder_id: s.folder_id });
+      await startGeneration({ ...p, model_selection: p.model_selection ?? generationModels(), instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id, folder_id: s.folder_id });
     } catch (error) { alert(modelErrorText(error, t)); }
   }
   if (a === "del") {
@@ -712,16 +716,28 @@ async function play(s) {
 }
 
 // ---------------------------------------------------------------- Einstellungen & Status
+let healthRevision = 0;
 async function checkHealth() {
+  const revision = ++healthRevision;
+  const policyVersion = generationPolicyVersion();
   const el = $("#status");
   try {
     const h = await backend.health();
-    el.className = "box small " + (h.ok ? "" : "err");
-    $("#healthStatus").textContent = h.ok ? "" : t("offline");
+    if (revision !== healthRevision || policyVersion !== generationPolicyVersion()) return;
+    el.className = "backend-health " + (h.ok ? "" : "err");
+    const message = h.ok ? "" : t("offline");
+    if ($("#healthStatus").textContent !== message) $("#healthStatus").textContent = message;
     renderBackendStatus($("#backendStatus"), h.backend_status, true);
+    updateObservedSynthesis(h.backend_status);
     el.title = h.error || (h.props ? `${t("models")}: ${Object.values(h.props.models || {}).flat().join(", ")}` : t("model_server"));
     return h;
-  } catch { el.className = "box small err"; $("#healthStatus").textContent = t("backend_offline"); renderBackendStatus($("#backendStatus"), undefined, true); }
+  } catch {
+    if (revision !== healthRevision || policyVersion !== generationPolicyVersion()) return;
+    el.className = "backend-health err";
+    if ($("#healthStatus").textContent !== t("backend_offline")) $("#healthStatus").textContent = t("backend_offline");
+    renderBackendStatus($("#backendStatus"), undefined, true);
+    updateObservedSynthesis(undefined);
+  }
 }
 const dlg = $("#settingsDlg");
 $("#settingsMoveLibrary").onclick = () => {

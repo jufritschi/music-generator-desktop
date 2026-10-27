@@ -1,0 +1,28 @@
+{
+  "version": "0.1.2",
+  "built_with": "npm run bundle, final legacy retry policy included",
+  "packages": [
+    {
+      "filename": "Music-Generator-0.1.2-macos-arm64.dmg",
+      "bytes": 14387786,
+      "sha256": "d2d583b75e463b9ac9e517d235baa7fa2e7a8a665628abf1fbd663958a280d6f"
+    },
+    {
+      "filename": "Music-Generator-0.1.2-macos-arm64.dmg.sha256",
+      "bytes": 104,
+      "sha256": "b1deeb7c9a7eb6f5efa883973a65ed342d215d36d1fd97665924e1f14c63762d"
+    },
+    {
+      "filename": "Music-Generator-0.1.2-macos-arm64.zip",
+      "bytes": 13259028,
+      "sha256": "8d54bfd7301ea54873f584917620a053d8af6e164051e7e1cd1f266060236349"
+    },
+    {
+      "filename": "Music-Generator-0.1.2-macos-arm64.zip.sha256",
+      "bytes": 104,
+      "sha256": "06c0bf406e40443e611d4709bde1008d4c80cc7bbbaab50aa96b0466695603cf"
+    }
+  ],
+  "zip_verification": "passed",
+  "dmg_verification": "passed"
+}

@@ -1,5 +1,6 @@
 pub mod admission;
 pub mod audio_export;
+pub mod audio_facts;
 pub mod audio_import;
 pub mod catalog;
 mod commands;
@@ -10,6 +11,7 @@ pub mod engine;
 pub mod error;
 pub mod exports;
 pub mod form_preferences;
+pub mod generation_limits;
 pub mod hardware;
 pub mod import;
 mod jobs;

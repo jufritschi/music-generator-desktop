@@ -1,0 +1,10 @@
+{
+  "original_song_rows_unchanged": true,
+  "song_count": 8,
+  "settings_differences": {
+    "cpu_iteration_behavior": {
+      "before": null,
+      "after": "\"ask\""
+    }
+  }
+}

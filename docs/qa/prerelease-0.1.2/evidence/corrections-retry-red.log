@@ -1,0 +1,129 @@
+
+> music-generator-desktop@0.1.2 test
+> vitest run song-results.test.ts generation-policy.test.ts -t unprofiled|real legacy defaults|unavailable policy conservative
+
+
+ RUN  v5.0.5 /Users/frank/.codex/worktrees/252d/music-generator-desktop/frontend
+
+ ❯ generation-policy.test.ts (51 tests | 2 failed | 49 skipped) 27ms
+   × uses the backend's real legacy defaults instead of its CPU recommendation when model context is missing 16ms
+   × keeps an unavailable policy conservative for automatic legacy steps without a model 10ms
+ ❯ song-results.test.ts (16 tests | 3 failed | 13 skipped) 64ms
+   × lets the backend resolve an unprofiled legacy retry without forcing the local Creator profile 9ms
+   × checks unprofiled retry against stored turbo=true independently of a different local Creator selection 3ms
+   × checks unprofiled retry against stored turbo=false independently of a different local Creator selection 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  generation-policy.test.ts > uses the backend's real legacy defaults instead of its CPU recommendation when model context is missing
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      "cpu",
+    ]
+
+
+Number of calls: 1
+
+ ❯ generation-policy.test.ts:160:21
+    158|   d.ask.mockClear(); d.policy.mockResolvedValue({ ...policy("cpu"), re…
+    159|   await createGenerationGate(d)({ ...request, inference_steps: 0 });
+    160|   expect(d.ask).not.toHaveBeenCalled();
+       |                     ^
+    161| });
+    162|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  generation-policy.test.ts > keeps an unavailable policy conservative for automatic legacy steps without a model
+AssertionError: expected undefined to be 50 // Object.is equality
+
+- Expected:
+50
+
++ Received:
+undefined
+
+ ❯ generation-policy.test.ts:166:85
+    164|   vi.spyOn(backend, "generationPolicy").mockRejectedValue(new Error("U…
+    165|   const fallback = await loadGenerationPolicy();
+    166|   expect(fallback.backend).toBe("unknown"); expect(fallback.legacy_inf…
+       |                                                                                     ^
+    167|   const d = deps(); d.policy.mockResolvedValue(fallback);
+    168|   await createGenerationGate(d)({ ...request, inference_steps: 0 });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  song-results.test.ts > lets the backend resolve an unprofiled legacy retry without forcing the local Creator profile
+AssertionError: expected { selection: { …(3) }, refresh: true } to match object { selection: null }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "selection": null,
++   "selection": {
++     "language": "lm",
++     "provider": "ace-step",
++     "synthesis": "acestep-v15-turbo-Q8_0.gguf",
++   },
+  }
+
+ ❯ song-results.test.ts:105:50
+    103|   mocks.current = { ...standard, synthesis: "acestep-v15-turbo-Q8_0.gg…
+    104|   row().querySelector<HTMLButtonElement>('[data-a="retry"]')!.click();…
+    105|   expect(calls("generation_policy").at(-1)?.[1]).toMatchObject({ selec…
+       |                                                  ^
+    106|   expect(calls("retry_song")).toHaveLength(1); expect(song.params.infe…
+    107| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  song-results.test.ts > checks unprofiled retry against stored turbo=true independently of a different local Creator selection
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ song-results.test.ts:121:17
+    119|   const asked = Boolean(dialog);
+    120|   if (dialog) { dialog.returnValue = "continue"; dialog.dispatchEvent(…
+    121|   expect(asked).toBe(shouldAsk); expect(policy.mock.calls.at(-1)?.[0])…
+       |                 ^
+    122|   expect(calls("retry_song")).toHaveLength(1); expect(song.params.infe…
+    123| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  song-results.test.ts > checks unprofiled retry against stored turbo=false independently of a different local Creator selection
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ song-results.test.ts:121:17
+    119|   const asked = Boolean(dialog);
+    120|   if (dialog) { dialog.returnValue = "continue"; dialog.dispatchEvent(…
+    121|   expect(asked).toBe(shouldAsk); expect(policy.mock.calls.at(-1)?.[0])…
+       |                 ^
+    122|   expect(calls("retry_song")).toHaveLength(1); expect(song.params.infe…
+    123| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  5 failed | 62 skipped (67)
+   Start at  13:23:36
+   Duration  330ms (environment 64%, tests 18%, transform 12%, import 4%, worker 1%)

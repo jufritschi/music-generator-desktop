@@ -1,0 +1,23 @@
+[
+  {
+    "mode": "gpu-details",
+    "seconds": 1.517106584,
+    "exit_code": 0,
+    "stdout": "{\"backend\":\"gpu\",\"kind\":\"metal\"}\n",
+    "stderr": ""
+  },
+  {
+    "mode": "cpu-details",
+    "seconds": 0.823344791,
+    "exit_code": 0,
+    "stdout": "{\"backend\":\"cpu\",\"kind\":\"cpu\"}\n",
+    "stderr": "load_backend: loaded CPU backend from /Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri/resources/engine/libggml-cpu.so\n"
+  },
+  {
+    "mode": "gpu-legacy",
+    "seconds": 0.04527150000000013,
+    "exit_code": 0,
+    "stdout": "\"gpu\"\n",
+    "stderr": ""
+  }
+]

@@ -18,8 +18,12 @@ pub async fn get_generation_form_preferences(
     let state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let selection = crate::catalog::Selection::from_settings(&state.db.settings()?);
-        let backend = state.synthesis_probe.inspect(&state.resources, false);
-        let defaults = crate::synthesis_policy::policy(backend, &selection).defaults;
+        let defaults = state
+            .synthesis_probe
+            .session_policy(&state.resources, &selection, false, || {
+                state.backend_status()
+            })
+            .defaults;
         state
             .db
             .generation_form_preferences_with_defaults(&defaults)
@@ -38,9 +42,14 @@ pub async fn generation_policy(
     tauri::async_runtime::spawn_blocking(move || {
         let settings = state.db.settings()?;
         let selection = selection.unwrap_or(crate::catalog::Selection::from_settings(&settings));
-        let backend = state.synthesis_probe.inspect(&state.resources, refresh);
-        let mut policy = crate::synthesis_policy::policy(backend, &selection);
+        let mut policy =
+            state
+                .synthesis_probe
+                .session_policy(&state.resources, &selection, refresh, || {
+                    state.backend_status()
+                });
         policy.cpu_iteration_behavior = settings.cpu_iteration_behavior;
+        policy.lm_device = settings.lm_device;
         Ok(policy)
     })
     .await

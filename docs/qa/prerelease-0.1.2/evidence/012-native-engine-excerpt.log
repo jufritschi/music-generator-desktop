@@ -1,0 +1,33 @@
+[LM-Phase2 Batch0] seed=1163074135, 46 codes
+[Server] Job d2711172f9c3a86f done (LM, 1 results)
+[Server] Job 7476c106b4f18771 created (LM, mode=0, N=1)
+[LM-Phase2 Batch0] seed=1163074136, 47 codes
+[Server] Job 7476c106b4f18771 done (LM, 1 results)
+[Server] Job 1a0bde122c0f8e24 created (1 requests)
+[Resolve-Params] max audio codes across batch: 47 (9.4s @ 5Hz)
+[DiT] Step 30/30 t=0.033
+[Server] Job 1a0bde122c0f8e24 done (1 tracks)
+[Server] Job 1e0b711905a8865c created (LM, mode=0, N=1)
+[LM-Phase2 Batch0] seed=3986530192, 150 codes
+[Server] Job 1e0b711905a8865c done (LM, 1 results)
+[Server] Job 79b7695758220ec1 created (1 requests)
+[Resolve-Params] max audio codes across batch: 150 (30.0s @ 5Hz)
+[DiT] Step 30/30 t=0.033
+[Server] Job 79b7695758220ec1 done (1 tracks)
+[Server] Job 2836a9599864255c created (LM, mode=0, N=1)
+[LM-Phase2 Batch0] seed=3783993124, 47 codes
+[Server] Job 2836a9599864255c done (LM, 1 results)
+[Server] Job 583e2e3b9740d983 created (LM, mode=0, N=1)
+[LM-Phase2 Batch0] seed=3783993125, 38 codes
+[Server] Job 583e2e3b9740d983 done (LM, 1 results)
+[Server] Job ac80fcf01bd68656 created (1 requests)
+[Resolve-Params] max audio codes across batch: 47 (9.4s @ 5Hz)
+[DiT] Step 100/100 t=0.010
+[Server] Job ac80fcf01bd68656 done (1 tracks)
+[Server] Job c64a3decf3cb4932 created (LM, mode=0, N=1)
+[LM-Phase2 Batch0] seed=916371631, 148 codes
+[Server] Job c64a3decf3cb4932 done (LM, 1 results)
+[Server] Job b4fd76bd227c3b70 created (1 requests)
+[Resolve-Params] max audio codes across batch: 148 (29.6s @ 5Hz)
+[DiT] Step 100/100 t=0.010
+[Server] Job b4fd76bd227c3b70 done (1 tracks)

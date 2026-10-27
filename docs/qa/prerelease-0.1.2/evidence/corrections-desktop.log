@@ -1,0 +1,49 @@
+
+> music-generator-desktop@0.1.2 test:desktop
+> node --test scripts/desktop/*.test.mjs
+
+✔ native runtime cache keeps both Linux backends and Mac architectures separate (3.974083ms)
+✔ cross-release cache rejects expired, failed, foreign and unrelated workflow artifacts (0.309334ms)
+▶ portable Linux runtime
+  ✔ locates shared CUDA libraries from the engine, title helper and nested backends (0.363708ms)
+  ✔ rejects missing libraries, driver stubs and reliance on the builder's CUDA installation (0.931709ms)
+  ✔ copies only redistributable runtime SONAMEs and their licenses (7.980208ms)
+✔ portable Linux runtime (9.92675ms)
+✔ rejects a cached engine from the other Linux variant or an older build recipe (12.288834ms)
+✔ publishes exactly the expected macos-arm64 files, including checksums (8.042583ms)
+✔ publishes exactly the expected macos-x64 files, including checksums (3.05525ms)
+✔ publishes exactly the expected windows-x64 files, including checksums (1.824458ms)
+✔ publishes exactly the expected linux-x64 files, including checksums (1.824834ms)
+✔ publishes exactly the expected linux-x64-cuda files, including checksums (2.031916ms)
+✔ platform asset sets contain seven distinct bundles and seven checksums (0.543084ms)
+✔ requires matching npm, Cargo and Tauri versions and an exact v-prefixed tag (0.578875ms)
+✔ rejects missing, unexpected and corrupt files before contacting GitHub (5.531417ms)
+✔ rejects directories and symlinks masquerading as release assets (1.985125ms)
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip.sha256
+✔ skips identical assets and preserves unrelated platforms (1.299459ms)
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip
+Already uploaded: Music-Generator-0.1.0-windows-x64.zip.sha256
+✔ hashes existing assets when GitHub has no digest (1.773625ms)
+✔ a conflicting existing checksum blocks every upload, including missing bundles (1.257875ms)
+Already uploaded: Music-Generator-0.1.0-macos-arm64.dmg
+✔ retries a partial upload without overwriting its successful files (2.139833ms)
+✔ rejects drafts and an unexpected release tag before uploading (1.535666ms)
+▶ native desktop engine targets
+  ✔ builds a portable Intel CPU engine with the same deployment target as its app (0.398209ms)
+  ✔ targets macOS Sonoma on Apple Silicon with Metal acceleration (0.06375ms)
+  ✔ rejects unsupported architectures (0.087959ms)
+  ✔ keeps the default app bundle minimum aligned with its Apple Silicon engine (1.530208ms)
+  ✔ can fingerprint every engine build input, including the compatibility patch (0.935875ms)
+  ✔ keeps the existing Vulkan artifact and excludes CUDA from its engines (0.081042ms)
+  ✔ builds a separate CUDA artifact without requiring a GPU on the build host (0.058125ms)
+  ✔ rejects an unknown Linux backend rather than reusing the Vulkan cache (0.081583ms)
+✔ native desktop engine targets (4.2085ms)
+ℹ tests 28
+ℹ suites 2
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 104.946875

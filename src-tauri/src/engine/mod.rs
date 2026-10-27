@@ -2,6 +2,7 @@ pub mod backend_status;
 pub mod client;
 pub mod device;
 mod diagnostics;
+mod generation;
 pub(crate) mod manager;
 pub mod process;
 pub mod progress;

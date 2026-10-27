@@ -1,0 +1,44 @@
+[
+  {
+    "args": [],
+    "returncode": 0,
+    "seconds": 0.695596791,
+    "stdout": "\"gpu\"\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "--details"
+    ],
+    "returncode": 0,
+    "seconds": 0.04468349999999999,
+    "stdout": "{\"backend\":\"gpu\",\"kind\":\"metal\"}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "--cpu"
+    ],
+    "returncode": 0,
+    "seconds": 0.010535832999999939,
+    "stdout": "\"cpu\"\n",
+    "stderr": "load_backend: loaded CPU backend from /private/tmp/music-generator-qa-012/final/Music Generator.app/Contents/Resources/engine/libggml-cpu.so\n"
+  },
+  {
+    "args": [
+      "--cpu",
+      "--details"
+    ],
+    "returncode": 0,
+    "seconds": 0.009009416000000048,
+    "stdout": "{\"backend\":\"cpu\",\"kind\":\"cpu\"}\n",
+    "stderr": "load_backend: loaded CPU backend from /private/tmp/music-generator-qa-012/final/Music Generator.app/Contents/Resources/engine/libggml-cpu.so\n"
+  },
+  {
+    "check": "sandbox",
+    "returncode": 0,
+    "seconds": 1.357666833,
+    "stdout": "App Sandbox: supervised MP3 export and ZIP passed; original WAV preserved.\nApp Sandbox: native title runtime starts; unselected file access denied.\nApp Sandbox: unselected read/write denied; inherited engine read denied; container storage, loopback health and supervisor shutdown passed.\n",
+    "stderr": ""
+  }
+]

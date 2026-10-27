@@ -1,6 +1,7 @@
 import "./form-preferences-i18n";
 import { backend } from "./backend";
 import { t } from "./i18n.js";
+import { effectiveInferenceSteps } from "./generation-limits";
 import type { GenerationFormPreferences } from "./types";
 
 export const DEFAULT_FORM_PREFERENCES: Readonly<GenerationFormPreferences> = Object.freeze({
@@ -52,10 +53,12 @@ export function createFormPreferences(form: HTMLFormElement, refresh: () => void
   const snapshot = (): GenerationFormPreferences => {
     const values = Object.fromEntries(fields.map(name => [name, Number(input(name).value)])) as unknown as GenerationFormPreferences;
     if (values.bpm <= Number(input("bpm").min)) values.bpm = 0;
+    values.inference_steps = effectiveInferenceSteps(values.inference_steps);
+    input("inference_steps").value = String(values.inference_steps);
     return values;
   };
   const apply = (values: GenerationFormPreferences) => {
-    for (const name of fields) input(name).value = String(name === "bpm" && values.bpm === 0 ? input(name).min : values[name]);
+    for (const name of fields) input(name).value = String(name === "inference_steps" ? effectiveInferenceSteps(values[name]) : name === "bpm" && values.bpm === 0 ? input(name).min : values[name]);
     refresh();
   };
   let previous = "";

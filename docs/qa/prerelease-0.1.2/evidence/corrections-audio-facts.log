@@ -1,0 +1,11 @@
+   Compiling music-generator v0.1.2 (/Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.36s
+     Running tests/audio_facts.rs (src-tauri/target/debug/deps/audio_facts-80faea79519fb2ad)
+
+running 4 tests
+test invalid_containers_formats_and_pcm_frame_lengths_are_rejected ... ok
+test unavailable_audio_never_presents_old_lm_duration_as_measured ... ok
+test historical_metadata_is_measured_without_changing_requests_or_audio_and_cache_tracks_changes ... ok
+test pcm_headers_provide_actual_duration_and_support_padded_metadata_chunks ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s

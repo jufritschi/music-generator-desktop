@@ -1,0 +1,27 @@
+{
+  "source_base": "c8f8b0e15aeba986e2edd374800aa81a4d817eb1",
+  "application_version": "0.1.1",
+  "purpose": "Local QA build with Metal warning and compact backend-header fixes; not published",
+  "source_changes": {
+    "frontend/backend-chip-i18n.ts": "c13a6a121b1b5c837f9ff5db3c182703c17eb2d1dae2f004eb72819c032e9db6",
+    "frontend/backend-i18n.test.ts": "d268236d3a560fb9d6938f7ff52924d2d5d4166e82d0207f5796536602d8be8d",
+    "frontend/backend-status.test.ts": "11482c9c9ab19c0106ecf12beb12ab7bd82226c9baf3c09ccacadfbf85bf9ecf",
+    "frontend/backend-status.ts": "094d78d2b21c5fa3f3816ad52de779387e4502f32385acd80fecdc7b39dd452e",
+    "frontend/generation-policy.test.ts": "f36c922d1524b99bd731f5291c53a3a6e7b48de84d61f30ed83fc30a9ab648d1",
+    "frontend/generation-policy.ts": "9b0a3287b4c317add9d1710a98d50df16fde28c1e8cd5e98738ccbaa591af128",
+    "frontend/index.html": "14288ccccfc71523248d3e86045ad66d39bcc7a57977ee1638fdb75cbfd8de32",
+    "frontend/studio-settings.test.ts": "3d8bc7e489bc08704ac8e1f53488be6e426a3758ad68ad061c266edd6189bbd2",
+    "frontend/studio.js": "18df654e1c945995471921c4e2441c1337c8e95c60ebb61c1c05e756e0a3dff6",
+    "frontend/types.ts": "4db646790f9489522bf7f33cd83a25dc6dc7ff29ffe76e151affe58f22258a2a",
+    "src-tauri/src/commands.rs": "7db8b207b1a0010cf074e9ca380bfa7a6aed1a09293e5489ccf2cd4dc01dcb88",
+    "src-tauri/src/engine/backend_status.rs": "aa606ab0e04418adad57df77a4e06b0b9c08f9679193301801532dd2856588e1",
+    "src-tauri/src/model_commands.rs": "330f88619528491f6a760c2c3aecb788e52d233fb503b601eaf3859666bd29bc",
+    "src-tauri/src/synthesis_policy.rs": "7cdd03ab0f867073fc8d1953ac0b560593de27a1d6098593548e8862975fe965",
+    "src-tauri/src/synthesis_policy/ggml.rs": "4001421f2d3533df9e3ada6972fbc0f81be6413bb0ca73ec49beddeadd7d4e50",
+    "src-tauri/src/synthesis_policy/macos.rs": "c9e4b3c8f6b9e18a141d34cb76f00fb7c30cb89b8314934f7d5064856481fd94",
+    "src-tauri/tests/synthesis_policy.rs": "14ac7b6161aaea4529ab43c555616d9cd6971114728f1d3363b3b3cadaaac2ba",
+    "src-tauri/tests/synthesis_probe_macos.rs": "334ab58348fb575e4ecbe1bde4dfb735bd85c127f64d42520ebbef90ac819517",
+    "static/desktop.css": "12419631a25535acc6e9bc7dea28096410d72beb93da9da10cdccfe9727ba780",
+    "static/style.css": "c92e39e1409ecfdae5db2df6e4f9fa17d5a72f32970780e93d69951c579c16c1"
+  }
+}

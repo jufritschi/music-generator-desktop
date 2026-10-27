@@ -1,0 +1,7 @@
+{
+  "mode": "fixed-cpu",
+  "seconds": 1.6845104999999998,
+  "exit_code": 0,
+  "stdout": "\"cpu\"\n",
+  "stderr": "load_backend: loaded CPU backend from /Users/frank/.codex/worktrees/252d/music-generator-desktop/src-tauri/resources/engine/libggml-cpu.so\n"
+}

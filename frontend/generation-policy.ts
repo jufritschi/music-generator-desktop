@@ -3,29 +3,62 @@ import { backend } from "./backend";
 import { DEFAULT_FORM_PREFERENCES } from "./form-preferences";
 import { t } from "./i18n.js";
 import { samplingForSong } from "./song-sampling";
-import type { CpuIterationBehavior, Generation, GenerationPolicy, ModelSelection } from "./types";
+import { updateBackendReadiness } from "./backend-status";
+import type { BackendStatus, CpuIterationBehavior, Generation, GenerationPolicy, ModelSelection } from "./types";
 
-let policy: GenerationPolicy = { backend: "unknown", cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { ...DEFAULT_FORM_PREFERENCES } };
+let policy: GenerationPolicy = { backend: "unknown", legacy_inference_steps: 50, cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { ...DEFAULT_FORM_PREFERENCES } };
 let policyRevision = 0;
+let policyVersion = 0;
+let observationRevision = 0;
+let observedSynthesis: GenerationPolicy["backend"] | undefined;
+const effectiveBackend = (device: GenerationPolicy["backend"]) => observedSynthesis ?? device;
+export const generationPolicyVersion = () => policyVersion;
+
+function policyBackend(current: GenerationPolicy, observation: number): GenerationPolicy["backend"] {
+  if (observation !== observationRevision) return effectiveBackend(current.probed_backend ?? current.backend);
+  return current.probed_backend === undefined ? effectiveBackend(current.backend) : current.backend;
+}
+
+/** Current synthesis evidence overrides the probe; stopped or unconfirmed engines retain only the probe fallback. */
+export function updateObservedSynthesis(status: BackendStatus | undefined): void {
+  observationRevision++;
+  const synthesis = status?.synthesis;
+  observedSynthesis = status?.state === "running" && synthesis?.state === "confirmed"
+    ? synthesis.backend === "cpu" ? "cpu" : ["cuda", "vulkan", "metal"].includes(synthesis.backend) ? "gpu" : undefined
+    : undefined;
+  if (!observedSynthesis) policy = { ...policy, backend: policy.probed_backend ?? policy.backend };
+  updateCpuWarnings();
+}
+
 export async function loadGenerationPolicy(selection?: ModelSelection, refresh = false): Promise<GenerationPolicy> {
   const revision = ++policyRevision;
+  const observation = observationRevision;
   let result: GenerationPolicy;
   try { result = await backend.generationPolicy(selection, refresh); }
-  catch { result = { backend: "unknown", cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { ...DEFAULT_FORM_PREFERENCES } }; }
-  if (revision === policyRevision) { policy = result; updateCpuWarnings(); }
-  return result;
+  catch { result = { backend: "unknown", legacy_inference_steps: 50, cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { ...DEFAULT_FORM_PREFERENCES } }; }
+  const device = policyBackend(result, observation);
+  if (revision === policyRevision) {
+    if (result.probed_backend !== undefined) {
+      policyVersion++;
+      if (observation === observationRevision) observedSynthesis = undefined;
+    }
+    if (result.detected_backend !== undefined) updateBackendReadiness(result.detected_backend, result.lm_device, observation === observationRevision ? result.backend_status ?? null : undefined);
+    policy = { ...result, backend: device }; updateCpuWarnings();
+  }
+  return { ...result, backend: revision === policyRevision ? device : effectiveBackend(policy.backend) };
 }
 export const warningKey = (backend: GenerationPolicy["backend"]) => backend === "cpu" ? "cpu_warning" : "cpu_unknown_warning";
 export function needsCpuConfirmation(backend: GenerationPolicy["backend"], steps: number): boolean { return backend !== "gpu" && steps > 30; }
 export function needsCpuWarning(backend: GenerationPolicy["backend"], steps: number): boolean { return backend !== "gpu" && steps >= 30; }
 export function updateCpuWarnings(): void {
   const input = document.querySelector<HTMLInputElement>('#genForm [name="inference_steps"]');
-  const visible = needsCpuWarning(policy.backend, Number(input?.value));
+  const device = effectiveBackend(policy.backend);
+  const visible = needsCpuWarning(device, Number(input?.value));
   input?.closest(".slider")?.classList.toggle("cpu-risk", visible);
   if (visible) input?.setAttribute("aria-describedby", "cpuGenerationWarning");
   else input?.removeAttribute("aria-describedby");
   const node = document.getElementById("cpuGenerationWarning");
-  if (node) { node.hidden = !visible; const text = t(warningKey(policy.backend)); if (node.textContent !== text) node.textContent = text; }
+  if (node) { node.hidden = !visible; const text = t(warningKey(device)); if (node.textContent !== text) node.textContent = text; }
 }
 
 export type CpuChoice = "reduce" | "continue" | null;
@@ -83,12 +116,15 @@ export function createGenerationGate(deps = { policy: loadGenerationPolicy, ask:
     busy = true;
     try {
       const request = structuredClone(values);
+      if (request.inference_steps || request.model_selection) request.inference_steps = samplingForSong(request).inference_steps;
+      const observation = observationRevision;
       const current = await deps.policy(request.model_selection, true);
-      const steps = samplingForSong(request).inference_steps;
+      const device = policyBackend(current, observation);
+      const steps = request.inference_steps || current.legacy_inference_steps || 50;
       let reduced = false;
-      if (needsCpuConfirmation(current.backend, steps)) {
+      if (needsCpuConfirmation(device, steps)) {
         const behavior = current.cpu_iteration_behavior ?? "ask";
-        const choice = behavior === "limit_30" ? "reduce" : behavior === "continue" ? "continue" : await deps.ask(current.backend);
+        const choice = behavior === "limit_30" ? "reduce" : behavior === "continue" ? "continue" : await deps.ask(device);
         if (!choice) return null;
         if (choice === "reduce") { request.inference_steps = 30; reduced = true; if (!retryId) applyReduced?.(); }
       }

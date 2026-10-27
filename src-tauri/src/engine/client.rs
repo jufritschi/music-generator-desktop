@@ -1,7 +1,4 @@
-use super::{
-    diagnostics::SynthesisLog,
-    progress::{stream_logs, Progress},
-};
+use super::progress::{stream_logs, Progress};
 use crate::error::{message, Error, Result};
 use serde_json::{json, Value};
 use std::{
@@ -44,17 +41,24 @@ impl EngineClient {
         cancel: &CancellationToken,
         progress: impl Fn(Progress),
     ) -> Result<(String, Vec<u8>)> {
-        let response = tokio::select! { _ = cancel.cancelled() => return Err(Error::Cancelled), r = request.send() => r? };
-        let job: Value = checked(response).await?.json().await?;
+        let started = Instant::now();
+        let admission = async {
+            let response = checked(request.send().await?).await?;
+            Ok::<Value, Error>(response.json().await?)
+        };
+        let job = tokio::select! {
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            result = tokio::time::timeout(self.timeout, admission) => result.unwrap_or_else(|_|Err(timeout_error(endpoint,started.elapsed())))?,
+        };
         let jid = match &job["id"] {
             Value::String(s) => s.clone(),
             Value::Number(n) => n.to_string(),
             _ => return Err(message("Engine returned no job ID")),
         };
-        let started = Instant::now();
+        let remaining = self.timeout.saturating_sub(started.elapsed());
         let outcome = tokio::select! {
             _ = cancel.cancelled() => Err(Error::Cancelled),
-            r = tokio::time::timeout(self.timeout, self.track(base, &jid, endpoint, &progress)) => r.unwrap_or_else(|_| Err(timeout_error(endpoint, started.elapsed()))),
+            r = tokio::time::timeout(remaining, self.track(base, &jid, endpoint, &progress)) => r.unwrap_or_else(|_| Err(timeout_error(endpoint, started.elapsed()))),
         };
         if outcome.is_err() {
             let _ = self
@@ -162,83 +166,6 @@ impl EngineClient {
             )
             .await?;
         extract_json(&ctype, &body)
-    }
-
-    pub async fn generate(
-        &self,
-        params: &Value,
-        lm_file: &str,
-        dit: &str,
-        cancel: &CancellationToken,
-        progress: impl Fn(Progress),
-    ) -> Result<(Vec<u8>, String, Value)> {
-        const FIELDS: &[&str] = &[
-            "caption",
-            "lyrics",
-            "bpm",
-            "duration",
-            "keyscale",
-            "timesignature",
-            "vocal_language",
-            "seed",
-            "lm_temperature",
-            "lm_cfg_scale",
-            "inference_steps",
-            "guidance_scale",
-            "use_cot_caption",
-        ];
-        // Normalize to the actual peak instead of clipping percentile outliers.
-        let mut request = json!({"output_format":"wav16", "peak_clip":0, "lm_model": lm_file, "synth_model": dit});
-        for field in FIELDS {
-            if let Some(value) = params
-                .get(field)
-                .filter(|v| !v.is_null() && v.as_str() != Some(""))
-            {
-                request[field] = value.clone();
-            }
-        }
-
-        let mut enriched = self.language_model(&request, cancel, &progress).await?;
-        if enriched["audio_codes"]
-            .as_str()
-            .unwrap_or("")
-            .trim()
-            .is_empty()
-        {
-            return Err(message(
-                "Language model returned no audio codes. Run the hardware test again.",
-            ));
-        }
-        // The synthesis model supports at most 600 seconds (3000 codes).
-        // Trim occasional LM overproduction only in this outgoing payload;
-        // saved song parameters remain unchanged.
-        limit_audio_codes(&mut enriched, params);
-        enriched["output_format"] = json!("wav16");
-        enriched["peak_clip"] = json!(0);
-        enriched["synth_model"] = json!(dit);
-        let log = self.synth_log.as_deref().map(SynthesisLog::capture);
-        let result = self
-            .operation(
-                &self.synth,
-                "synth",
-                self.http
-                    .post(format!("{}/synth", self.synth))
-                    .json(&enriched),
-                cancel,
-                progress,
-            )
-            .await
-            .and_then(|(ctype, body)| extract_audio(&ctype, &body));
-        let (audio, extension) = result.map_err(|error| {
-            if matches!(error, Error::Cancelled | Error::EngineTimeout { .. }) {
-                return error;
-            }
-            log.as_ref()
-                .and_then(|log| log.hint(&error.to_string()))
-                .map(message)
-                .unwrap_or(error)
-        })?;
-        Ok((audio, extension, enriched))
     }
 
     pub async fn analyze(
