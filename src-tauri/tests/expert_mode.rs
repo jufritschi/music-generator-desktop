@@ -23,6 +23,8 @@ fn hardware(gib: u64) -> Hardware {
         vae_chunk: chunk,
         platform: "macos",
         cpu_only: true,
+        nvidia: None,
+        cuda: None,
     }
 }
 

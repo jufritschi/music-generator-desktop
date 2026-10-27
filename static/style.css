@@ -87,6 +87,14 @@ body {
 @media (max-width: 700px) { .rec { width: 44px; height: 44px; } .rec-mic { width: 19px; height: 19px; } }
 .top-right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .top-right .gear { order: 1; } .top-right .langsw { order: 2; } .top-right #status { order: 3; }
+.backend-details { text-align: left; }
+.backend-details summary { cursor: pointer; }
+.backend-observations { overflow-wrap: anywhere; text-transform: none; letter-spacing: normal; font-size: 14px; font-weight: 400; line-height: 1.5; }
+.backend-observations p { margin: 8px 0; }
+.backend-observations .small { color: var(--muted); }
+.backend-details.compact { position: relative; max-width: 210px; }
+.backend-details.compact summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.backend-details.compact[open] .backend-observations { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: min(430px, calc(100vw - 32px)); padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--text); box-shadow: 0 10px 30px #0008; }
 @media (max-width: 900px) { .top { --h: 64px; gap: 12px; } }
 @media (max-width: 700px) { .top { --h: 48px; gap: 10px; flex-wrap: wrap; } }
 

@@ -33,13 +33,28 @@ export interface Song {
 export interface Folder { id: string; name: string; count: number }
 export interface Filter { q?: string; favorites?: boolean; group?: string; folder?: string }
 export interface Queue { progress: JobProgress | null; running: { id: string; caption: string; message: string | null }[]; queued: number; active: boolean; library: { count: number; bytes: number } }
-export interface Health { ok: boolean; error?: string; props?: { models?: Record<string, string[]> } }
+export type BackendReason = "cpu_requested" | "cpu_only" | "lm_selftest_failed" | "cuda_architecture_unsupported" | "cuda_initialization_failed";
+export interface ComponentBackend {
+  state: "not_started" | "unconfirmed" | "confirmed" | "stopped";
+  backend: "cuda" | "vulkan" | "metal" | "cpu" | "unknown";
+  device: string | null; reason: BackendReason | null;
+}
+export interface BackendStatus {
+  state: "not_started" | "running" | "stopped";
+  synthesis: ComponentBackend; language_model: ComponentBackend;
+}
+export interface Health { ok: boolean; error?: string; props?: { models?: Record<string, string[]> }; backend_status: BackendStatus }
+export interface SetupResult { ok: boolean; mode: string; backend_status: BackendStatus }
 export interface Update { available: boolean; current: string; latest?: string; url?: string; notes?: string }
 export interface Model { file: string; estimated_bytes: number; sha256: string; kind: string }
 export interface Bootstrap {
   recommended_profiles: ModelSelection[];
   needs_setup: boolean; settings: Settings; version: string; data_dir: string; error: string | null;
-  hardware: { ram_bytes: number; gpu: string; vram_bytes: number | null; recommended_lm: string; vae_chunk: number | null; platform: string; cpu_only: boolean };
+  hardware: {
+    ram_bytes: number; gpu: string; vram_bytes: number | null; recommended_lm: string; vae_chunk: number | null; platform: string; cpu_only: boolean;
+    nvidia?: { compute_capability: string | null; driver_version: string | null } | null;
+    cuda?: { minimum_compute_capability: string; architecture_supported: boolean | null } | null;
+  };
   title_model: Model;
   manifest: { version: number; base_url: string; models: Model[] };
 }

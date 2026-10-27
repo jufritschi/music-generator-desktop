@@ -9,6 +9,7 @@ import { initializeAudioImport } from "./audio-import";
 import { pathErrorText } from "./path-dialogs";
 import { generationModels, restoreSongModels, generationModelAllowed } from "./model-picker";
 import { t, LANG, setLang } from "./i18n.js";
+import { renderBackendStatus } from "./backend-status";
 import { exportSong, exportFolder } from "./exports";
 import { samplingForSong } from "./song-sampling";
 import { initializeGenerationFormPreferences, captureGenerationFormPreferences } from "./form-preferences";
@@ -716,10 +717,11 @@ async function checkHealth() {
   try {
     const h = await backend.health();
     el.className = "box small " + (h.ok ? "" : "err");
-    el.textContent = h.ok ? "" : t("offline");   // bei "alles ok" nichts anzeigen
+    $("#healthStatus").textContent = h.ok ? "" : t("offline");
+    renderBackendStatus($("#backendStatus"), h.backend_status, true);
     el.title = h.error || (h.props ? `${t("models")}: ${Object.values(h.props.models || {}).flat().join(", ")}` : t("model_server"));
     return h;
-  } catch { el.className = "box small err"; el.textContent = t("backend_offline"); }
+  } catch { el.className = "box small err"; $("#healthStatus").textContent = t("backend_offline"); renderBackendStatus($("#backendStatus"), undefined, true); }
 }
 const dlg = $("#settingsDlg"), sf = $("#settingsForm");
 let settingsBefore;

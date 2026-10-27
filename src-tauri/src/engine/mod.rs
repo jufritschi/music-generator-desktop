@@ -1,3 +1,4 @@
+pub mod backend_status;
 pub mod client;
 pub mod device;
 mod diagnostics;
@@ -8,6 +9,7 @@ use crate::{
     error::{message, Error, Result},
     types::Settings,
 };
+use backend_status::{BackendLog, BackendSession, Reason};
 use client::EngineClient;
 use process::OwnedProcess;
 use std::{
@@ -20,6 +22,7 @@ use tokio_util::sync::CancellationToken;
 pub struct Engine {
     processes: Vec<OwnedProcess>,
     pub client: EngineClient,
+    pub backend: BackendSession,
 }
 
 // CPU-only Macs share one server: a second CPU LM would duplicate model memory.
@@ -50,7 +53,7 @@ impl Engine {
         }
         let (cpu_synth, separate_lm) = device_plan(settings, crate::hardware::cpu_only());
         let mut processes = Vec::new();
-        let (synth, process) = start_one(
+        let (synth, process, synthesis_log) = start_one(
             &binary,
             &logs.join("ace-server.log"),
             settings,
@@ -59,18 +62,37 @@ impl Engine {
         )
         .await?;
         processes.push(process);
-        let lm = if separate_lm {
-            let (url, process) =
+        let (lm, language_log) = if separate_lm {
+            let (url, process, log) =
                 start_one(&binary, &logs.join("ace-lm.log"), settings, true, cancel).await?;
             processes.push(process);
-            url
+            (url, Some(log))
         } else {
-            synth.clone()
+            (synth.clone(), None)
         };
         let mut client =
             EngineClient::new(synth, lm, settings.poll_interval, settings.timeout_minutes)?;
         client.synth_log = Some(logs.join("ace-server.log"));
-        Ok(Self { processes, client })
+        let cpu_reason = if cpu_synth {
+            Some(Reason::CpuOnly)
+        } else if settings.lm_device == "cpu" {
+            Some(Reason::CpuRequested)
+        } else if separate_lm {
+            Some(Reason::LmSelftestFailed)
+        } else {
+            None
+        };
+        let cuda_unsupported = crate::hardware::inspect()
+            .cuda
+            .as_ref()
+            .is_some_and(|cuda| cuda.architecture_supported == Some(false));
+        let backend =
+            BackendSession::new(synthesis_log, language_log, cpu_reason, cuda_unsupported);
+        Ok(Self {
+            processes,
+            client,
+            backend,
+        })
     }
 
     pub fn alive(&mut self) -> bool {
@@ -86,7 +108,7 @@ async fn start_one(
     settings: &Settings,
     cpu: bool,
     cancel: &CancellationToken,
-) -> Result<(String, OwnedProcess)> {
+) -> Result<(String, OwnedProcess, BackendLog)> {
     if let Some(folder) = log.parent() {
         std::fs::create_dir_all(folder)?;
     }
@@ -121,6 +143,7 @@ async fn start_one(
             args.extend(["--vae-chunk".into(), chunk.to_string()]);
         }
         args.extend(cpu_args.iter().cloned());
+        let observation = BackendLog::capture(log);
         let mut process = OwnedProcess::spawn(binary, &args, cpu, log)?;
         let url = format!("http://127.0.0.1:{port}");
         while tokio::time::Instant::now() < deadline {
@@ -136,7 +159,7 @@ async fn start_one(
                 response = client.get(format!("{url}/health")).send() => response,
             };
             if response.is_ok_and(|r| r.status().is_success()) && process.alive()? {
-                return Ok((url, process));
+                return Ok((url, process, observation));
             }
             tokio::select! {
                 _ = cancel.cancelled() => return Err(Error::Cancelled),
