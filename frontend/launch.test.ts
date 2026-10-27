@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { mountStudio } from "./dom-fixture";
 import manifest from "../models/manifest.json";
 import title from "../models/title-model.json";
+import type { GenerationPolicy } from "./types";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn(), listen: vi.fn(), close: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke, convertFileSrc: (path: string) => `asset:${path}` }));
@@ -15,6 +16,10 @@ beforeEach(() => {
   mocks.invoke.mockImplementation(async name => {
     if (name === "startup_allowed") return true;
     if (name === "setup_estimate") return { missing_bytes: 0, free_bytes: 100 };
+    if (name === "generation_policy") return {
+      backend: "cpu", cpu_iteration_behavior: "ask", recommended_steps: 30,
+      defaults: { duration: 60, bpm: 0, inference_steps: 30, lm_temperature: 1.2, variants: 1 },
+    } satisfies GenerationPolicy;
     if (name === "bootstrap") return {
       needs_setup: true, version: "0.1.1", data_dir: "/data", error: null, manifest, title_model: title.model,
       settings: { models_dir: "/models", songs_dir: "/songs", lm_model: "acestep-5Hz-lm-1.7B-Q8_0.gguf", dit: "standard", expert_mode: false },
