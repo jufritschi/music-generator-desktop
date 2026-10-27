@@ -110,6 +110,10 @@ npm run bundle
 
 Die plattformspezifischen Pipelines stehen in `.github/workflows/desktop.yml`. Build, Datenablage, Import, Signierung und manuelle Abnahme beschreibt [docs/desktop.md](docs/desktop.md).
 
+## Dokumentation
+
+Das eigenständige [Astro-/Starlight-Grundgerüst](docs/site/README.md) unter `docs/site/` enthält deutsche und englische Installationsseiten. Dort stehen auch Vorschau-Befehle und Hinweise, um Texte und Bilder echter Installationen per Pull Request zu ergänzen. Der separate Workflow `.github/workflows/docs.yml` prüft und veröffentlicht die Dokumentation über GitHub Pages; die einmalige Pages-Einrichtung ist in der Beitragsanleitung beschrieben.
+
 ## Aufbau
 
 | Bereich | Inhalt |
