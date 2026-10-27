@@ -1,0 +1,3 @@
+App Sandbox: supervised MP3 export and ZIP passed; original WAV preserved.
+App Sandbox: native title runtime starts; unselected file access denied.
+App Sandbox: unselected read/write denied; inherited engine read denied; container storage, loopback health and supervisor shutdown passed.

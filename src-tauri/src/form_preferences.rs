@@ -1,6 +1,7 @@
 use crate::{
     db::Database,
     error::{message, Result},
+    generation_limits::MAX_INFERENCE_STEPS,
 };
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
@@ -38,7 +39,9 @@ fn valid(key: &str, value: &Value) -> bool {
         "bpm" => value
             .as_u64()
             .is_some_and(|v| v == 0 || (51..=200).contains(&v)),
-        "inference_steps" => value.as_u64().is_some_and(|v| (1..=200).contains(&v)),
+        "inference_steps" => value
+            .as_u64()
+            .is_some_and(|v| (1..=u64::from(MAX_INFERENCE_STEPS)).contains(&v)),
         "lm_temperature" => value
             .as_f64()
             .is_some_and(|v| v.is_finite() && (0.3..=1.5).contains(&v)),
@@ -74,8 +77,9 @@ impl Database {
                 row.get(0)
             })
             .optional()?;
-        let value = text
-            .and_then(|text| match serde_json::from_str(&text) {
+        let mut value = text
+            .as_deref()
+            .and_then(|text| match serde_json::from_str(text) {
                 Ok(value) => Some(value),
                 Err(error) => {
                     tracing::warn!(%error, "Ignoring damaged generation form preferences");
@@ -83,6 +87,15 @@ impl Database {
                 }
             })
             .unwrap_or(Value::Null);
+        if value["inference_steps"].as_u64().is_some_and(|steps| {
+            (u64::from(MAX_INFERENCE_STEPS) + 1..=u64::from(u32::MAX)).contains(&steps)
+        }) {
+            value["inference_steps"] = MAX_INFERENCE_STEPS.into();
+            self.lock().execute(
+                "UPDATE settings SET value=?1 WHERE key=?2 AND value=?3",
+                rusqlite::params![value.to_string(), KEY, text],
+            )?;
+        }
         Ok(GenerationFormPreferences::from_stored(value, defaults))
     }
 
@@ -160,6 +173,51 @@ mod tests {
     }
 
     #[test]
+    fn saved_iteration_values_above_the_engine_limit_restore_as_one_hundred() {
+        let root = tempfile::tempdir().unwrap();
+        let db = Database::open(root.path()).unwrap();
+        for steps in [100, 101, 120, 200] {
+            store(
+                &db,
+                &json!({"inference_steps": steps, "duration": 30, "variants": 1, "legacy_note": "retain"}).to_string(),
+            );
+            let values = db.generation_form_preferences().unwrap();
+            assert_eq!(values.inference_steps, 100);
+            assert_eq!(values.duration, 30.0);
+            assert_eq!(values.variants, 1);
+            let saved: String = db
+                .lock()
+                .query_row("SELECT value FROM settings WHERE key=?1", [KEY], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            assert_eq!(
+                serde_json::from_str::<Value>(&saved).unwrap(),
+                json!({"inference_steps": 100, "duration": 30, "variants": 1, "legacy_note": "retain"})
+            );
+        }
+    }
+
+    #[test]
+    fn new_preferences_cannot_persist_iterations_above_the_engine_limit() {
+        let root = tempfile::tempdir().unwrap();
+        let db = Database::open(root.path()).unwrap();
+        let saved = GenerationFormPreferences {
+            inference_steps: 100,
+            ..Default::default()
+        };
+        db.save_generation_form_preferences(&saved).unwrap();
+        for steps in [101, 120, 200] {
+            let invalid = GenerationFormPreferences {
+                inference_steps: steps,
+                ..saved.clone()
+            };
+            assert!(db.save_generation_form_preferences(&invalid).is_err());
+            assert_eq!(db.generation_form_preferences().unwrap(), saved);
+        }
+    }
+
+    #[test]
     fn missing_damaged_and_partially_invalid_values_use_defaults() {
         let root = tempfile::tempdir().unwrap();
         let db = Database::open(root.path()).unwrap();
@@ -202,7 +260,7 @@ mod tests {
                     .inference_steps,
                 steps
             );
-            store(&db, r#"{"inference_steps":201}"#);
+            store(&db, r#"{"inference_steps":"invalid"}"#);
             assert_eq!(
                 db.generation_form_preferences_with_defaults(&defaults)
                     .unwrap()
@@ -238,7 +296,7 @@ mod tests {
                 ..defaults.clone()
             });
         }
-        for inference_steps in [0, 201] {
+        for inference_steps in [0, 101, 201] {
             invalid.push(GenerationFormPreferences {
                 inference_steps,
                 ..defaults.clone()
@@ -274,7 +332,7 @@ mod tests {
             GenerationFormPreferences {
                 duration: 600.0,
                 bpm: 200,
-                inference_steps: 200,
+                inference_steps: 100,
                 lm_temperature: 1.5,
                 variants: 10,
             },

@@ -16,9 +16,14 @@ use std::{
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
+#[path = "support/wav.rs"]
+mod wav;
 
 fn multipart() -> Vec<u8> {
-    b"--song\r\nContent-Type: application/json\r\n\r\n{\"caption\":\"test\"}\r\n--song\r\nContent-Type: audio/wav\r\n\r\nRIFF\x00\xff\x01\r\n--song--\r\n".to_vec()
+    let mut body = b"--song\r\nContent-Type: application/json\r\n\r\n{\"caption\":\"test\"}\r\n--song\r\nContent-Type: audio/wav\r\n\r\n".to_vec();
+    body.extend(wav::tone(1.0));
+    body.extend(b"\r\n--song--\r\n");
+    body
 }
 
 #[test]
@@ -30,7 +35,7 @@ fn multipart_preserves_binary_audio_and_extracts_metadata() {
     );
     assert_eq!(
         extract_audio(ctype, &multipart()).unwrap(),
-        (b"RIFF\x00\xff\x01".to_vec(), "wav".into())
+        (wav::tone(1.0), "wav".into())
     );
     assert!(extract_audio("application/json", b"{}").is_err());
     assert!(extract_json("application/json", b"[]").is_err());
@@ -149,7 +154,7 @@ async fn generation_trims_lm_overproduction_before_synthesis() {
                     .collect();
                 assert_eq!(codes.len(), 3000);
                 assert_eq!(codes[2999], "2999");
-                assert_eq!(request["duration"], 600);
+                assert_eq!(request["duration"].as_f64(), Some(600.0));
                 Json(json!({"id":"synth"}))
             }),
         )
@@ -172,7 +177,7 @@ async fn generation_trims_lm_overproduction_before_synthesis() {
                                     .unwrap(),
                             )
                         } else {
-                            ([(CONTENT_TYPE, "audio/wav")], b"RIFFtest".to_vec())
+                            ([(CONTENT_TYPE, "audio/wav")], wav::tone(600.0))
                         }
                     }
                 },
@@ -327,7 +332,7 @@ async fn generation_chains_lm_and_synthesis_and_preserves_parameters() {
         )
         .await
         .unwrap();
-    assert_eq!(audio, b"RIFF\x00\xff\x01");
+    assert_eq!(audio, wav::tone(1.0));
     assert_eq!(ext, "wav");
     assert_eq!(meta["bpm"], 90);
     assert_eq!(meta["peak_clip"], 0);

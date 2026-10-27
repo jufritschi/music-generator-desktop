@@ -15,6 +15,12 @@ pub fn model_catalog(state: State<'_, Arc<AppState>>) -> Result<Value> {
     let root = Path::new(&settings.models_dir);
     let verifier = ModelVerifier::open(&state.db.root);
     let catalog = catalog::catalog();
+    let backend = crate::synthesis_policy::session_policy(
+        state.synthesis_probe.cached(),
+        &Selection::from_settings(&settings),
+        &state.backend_status(),
+    )
+    .backend;
     let mut result = serde_json::to_value(&catalog)?;
     result["models"] = Value::Array(
         catalog
@@ -23,12 +29,9 @@ pub fn model_catalog(state: State<'_, Arc<AppState>>) -> Result<Value> {
             .map(|model| {
                 let mut value = serde_json::to_value(model).expect("model serialization");
                 let path = root.join(&model.file);
-                value["suggested_steps"] = json!(model.recommended_steps.map(|steps| {
-                    crate::synthesis_policy::recommended_steps(
-                        state.synthesis_probe.cached(),
-                        steps,
-                    )
-                }));
+                value["suggested_steps"] = json!(model
+                    .recommended_steps
+                    .map(|steps| { crate::synthesis_policy::recommended_steps(backend, steps) }));
                 value["verified"] = json!(verifier.is_verified(&path, &model.sha256));
                 value["present"] = json!(path.is_file());
                 value["partial_bytes"] = json!(root

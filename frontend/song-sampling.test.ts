@@ -9,6 +9,7 @@ it("uses the upstream defaults conservative defaults for an uninitialized genera
   expect(html.match(/<input name="inference_steps"[^>]*value="([^"]+)"/)?.[1]).toBe("30");
   expect(html.match(/<input name="lm_temperature"[^>]*value="([^"]+)"/)?.[1]).toBe("1.2");
   expect(html.match(/<input name="duration"[^>]*max="([^"]+)"/)?.[1]).toBe("600");
+  expect(html.match(/<input name="inference_steps"[^>]*max="([^"]+)"/)?.[1]).toBe("100");
   expect(html).toContain('id="lenHint" hidden aria-live="polite"');
 });
 
@@ -52,4 +53,10 @@ it("updates both tooltips in all twelve languages while retaining desktop messag
 
 it("keeps turbo's legacy automatic eight steps when checking a retry", () => {
   expect(samplingForSong({ inference_steps: 0, model_selection: { synthesis: "acestep-v15-xl-turbo-Q8_0.gguf" } }).inference_steps).toBe(8);
+});
+
+it.each([120, 200])("limits historical %s-step requests to the engine's actual 100 steps without editing them", steps => {
+  const params = Object.freeze({ inference_steps: steps, lm_temperature: 1.2 });
+  expect(samplingForSong(params).inference_steps).toBe(100);
+  expect(params.inference_steps).toBe(steps);
 });

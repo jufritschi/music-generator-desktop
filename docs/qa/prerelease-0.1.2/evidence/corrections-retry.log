@@ -1,0 +1,12 @@
+
+> music-generator-desktop@0.1.2 test
+> vitest run song-results.test.ts generation-policy.test.ts
+
+
+ RUN  v5.0.5 /Users/frank/.codex/worktrees/252d/music-generator-desktop/frontend
+
+
+ Test Files  2 passed (2)
+      Tests  67 passed (67)
+   Start at  13:24:13
+   Duration  569ms (tests 52%, environment 38%, transform 7%, import 3%, worker 1%)

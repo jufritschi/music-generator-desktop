@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { mountStudio } from "./dom-fixture";
-import type { Generation, Settings, SettingsPatch, Song } from "./types";
+import type { BackendStatus, Generation, Settings, SettingsPatch, Song } from "./types";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn(), save: vi.fn(), notify: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke, convertFileSrc: (path: string) => path }));
@@ -151,7 +151,7 @@ it("keeps settings modal until save succeeds, blocks duplicate saves and discard
   expect(field(settingsForm(), "lm_device").disabled).toBe(false);
   expect(calls("generate")).toHaveLength(0);
   expect(calls("retry_song")).toHaveLength(0);
-  button('[data-id="done"] [data-a="more"]').click();
+  button('[data-id="done"] [data-a="more"]').click(); await settle();
   button('[data-id="error"] [data-a="retry"]').click(); await settle();
   expect(calls("generate")).toHaveLength(1);
   expect(calls("retry_song")).toHaveLength(1);
@@ -254,4 +254,105 @@ it("provides a saving status in every supported language", async () => {
   for (const language of Object.keys(LANGS)) {
     expect((I18N[language as keyof typeof I18N] as Record<string, unknown>).settings_saving).toEqual(expect.any(String));
   }
+});
+
+const observedBackend = (backend: "metal" | "cpu", state: BackendStatus["state"] = "running"): BackendStatus => ({
+  state,
+  synthesis: { state: state === "running" ? "confirmed" : "stopped", backend, device: backend === "metal" ? "MTL0" : "CPU", reason: null },
+  language_model: { state: "confirmed", backend: "cpu", device: "CPU", reason: "cpu_requested" },
+});
+
+it("uses current confirmed synthesis to update CPU warnings independently of a CPU language model", async () => {
+  const { backend } = await import("./backend");
+  const { loadGenerationPolicy, updateCpuWarnings } = await import("./generation-policy");
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue({ backend: "unknown", cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { duration: 90, bpm: 0, inference_steps: 30, lm_temperature: 1.2, variants: 2 } });
+  field(generationForm(), "inference_steps").value = "80";
+  await loadGenerationPolicy(); updateCpuWarnings();
+  const warning = document.querySelector<HTMLElement>("#cpuGenerationWarning")!;
+  expect(warning.hidden).toBe(false);
+  const health = vi.spyOn(backend, "health").mockResolvedValue({ ok: true, backend_status: observedBackend("metal") });
+  document.dispatchEvent(new Event("studio-ready")); await settle();
+  expect(document.querySelector("#backendStatus")!.getAttribute("aria-label")).toContain("Metal · MTL0");
+  expect(warning.hidden).toBe(true);
+  expect(field(generationForm(), "inference_steps").closest(".slider")!.classList.contains("cpu-risk")).toBe(false);
+  health.mockResolvedValue({ ok: true, backend_status: observedBackend("cpu") });
+  document.dispatchEvent(new Event("studio-ready")); await settle();
+  expect(warning.hidden).toBe(false);
+  expect(warning.textContent).toContain("Die Klangerzeugung läuft auf der CPU.");
+  expect(backend.generationPolicy).toHaveBeenCalledOnce();
+});
+
+it("does not restore an older GPU observation after a newer stopped health response", async () => {
+  const { backend } = await import("./backend");
+  const { loadGenerationPolicy } = await import("./generation-policy");
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue({ backend: "unknown", cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { duration: 90, bpm: 0, inference_steps: 30, lm_temperature: 1.2, variants: 2 } });
+  field(generationForm(), "inference_steps").value = "80";
+  await loadGenerationPolicy();
+  let finish!: (value: Awaited<ReturnType<typeof backend.health>>) => void;
+  vi.spyOn(backend, "health").mockReturnValueOnce(new Promise(resolve => { finish = resolve; })).mockResolvedValue({ ok: true, backend_status: observedBackend("metal", "stopped") });
+  document.dispatchEvent(new Event("studio-ready")); await settle();
+  document.dispatchEvent(new Event("studio-ready")); await settle();
+  finish({ ok: true, backend_status: observedBackend("metal") }); await settle();
+  expect(document.querySelector<HTMLElement>("#backendStatus")!.dataset.backend).toBe("unknown");
+  expect(document.querySelector("#backendStatus")!.getAttribute("aria-label")).not.toContain("MTL0");
+  expect(document.querySelector<HTMLElement>("#cpuGenerationWarning")!.hidden).toBe(false);
+});
+
+it.each(["gpu", "error"])("ignores a delayed health %s result after a newer authoritative CPU policy", async outcome => {
+  const { backend } = await import("./backend");
+  const { loadGenerationPolicy } = await import("./generation-policy");
+  const cpu = { backend: "cpu", probed_backend: "gpu", cpu_iteration_behavior: "ask", recommended_steps: 30, defaults: { duration: 90, bpm: 0, inference_steps: 30, lm_temperature: 1.2, variants: 2 } } as const;
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue(cpu);
+  field(generationForm(), "inference_steps").value = "80";
+  let finish!: (value: Awaited<ReturnType<typeof backend.health>>) => void, fail!: (error: Error) => void;
+  vi.spyOn(backend, "health").mockReturnValueOnce(new Promise((resolve, reject) => { finish = resolve; fail = reject; }));
+  document.dispatchEvent(new Event("studio-ready")); await settle();
+  await loadGenerationPolicy();
+  if (outcome === "gpu") finish({ ok: true, backend_status: observedBackend("metal") });
+  else fail(new Error("Old health failure"));
+  await settle();
+  const warning = document.querySelector<HTMLElement>("#cpuGenerationWarning")!;
+  expect(warning.hidden).toBe(false);
+  expect(warning.textContent).toContain("Die Klangerzeugung läuft auf der CPU.");
+  expect(document.querySelector("#backendStatus")!.getAttribute("aria-label")).not.toContain("MTL0");
+});
+
+it("updates detected Metal and the selected LM mode from the existing policy response before inference", async () => {
+  const { backend } = await import("./backend");
+  const { loadGenerationPolicy } = await import("./generation-policy");
+  const response = { backend: "gpu", probed_backend: "gpu", detected_backend: "metal", lm_device: "cpu", cpu_iteration_behavior: "ask", recommended_steps: 80, defaults: { duration: 90, bpm: 0, inference_steps: 80, lm_temperature: 1.2, variants: 2 } } as const;
+  const load = vi.spyOn(backend, "generationPolicy").mockResolvedValue(response);
+  const healthCalls = calls("health").length;
+  await loadGenerationPolicy();
+  const chip = document.querySelector<HTMLElement>("#backendStatus")!;
+  expect(chip.textContent).toBe("RechenbackendMetal");
+  expect(chip.title).toBe("Klangerzeugung: Metal · Erkannt und verfügbar\nSprachmodell: Nur CPU");
+  load.mockResolvedValue({ ...response, lm_device: "auto" }); await loadGenerationPolicy();
+  expect(chip.title).toContain("Sprachmodell: Automatisch");
+  expect(calls("health")).toHaveLength(healthCalls);
+  expect(calls("generate")).toHaveLength(0);
+});
+
+it.each([["cpu", "cpu", "gpu", "metal"], ["metal", "gpu", "unknown", "unknown"]] as const)("keeps current %s execution when detected availability differs on policy refresh", async (device, backendClass, probed, detected) => {
+  const { backend } = await import("./backend");
+  const { loadGenerationPolicy } = await import("./generation-policy");
+  const current = observedBackend(device);
+  vi.spyOn(backend, "health").mockResolvedValue({ ok: true, backend_status: current });
+  document.dispatchEvent(new Event("studio-ready")); await settle();
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue({ backend: backendClass, probed_backend: probed, detected_backend: detected, lm_device: "auto", backend_status: current, cpu_iteration_behavior: "ask", recommended_steps: 80, defaults: { duration: 90, bpm: 0, inference_steps: 80, lm_temperature: 1.2, variants: 2 } });
+  await loadGenerationPolicy();
+  const chip = document.querySelector<HTMLElement>("#backendStatus")!;
+  expect(chip.dataset.backend).toBe(device);
+  expect(chip.dataset.evidence).toBe("observed");
+  expect(chip.title).toContain("In der Engine bestätigt");
+});
+
+it("keeps the selected automatic LM setting clear when the saved runtime mode uses a CPU fallback", async () => {
+  const { backend } = await import("./backend");
+  const { loadGenerationPolicy } = await import("./generation-policy");
+  settings.mode = "split"; settings.lm_device = "auto";
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue({ backend: "gpu", probed_backend: "gpu", detected_backend: "metal", lm_device: "auto", cpu_iteration_behavior: "ask", recommended_steps: 80, defaults: { duration: 90, bpm: 0, inference_steps: 80, lm_temperature: 1.2, variants: 2 } });
+  await loadGenerationPolicy();
+  await openSettings(); submitSettings(); await settle();
+  expect(document.querySelector<HTMLElement>("#backendStatus")!.title).toContain("Sprachmodell: Automatisch");
 });

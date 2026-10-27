@@ -90,7 +90,9 @@ body { height: 100dvh; display: flex; flex-direction: column; padding: 0; }
   #studio .top { flex-wrap: wrap; }
   #studio .brand-link { flex: 1 1 180px; }
   #studio .top .title { flex: 1 1 auto; }
-  #studio .top-right { flex-direction: row; align-items: center; gap: 4px; }
+  #studio .top-right { max-width: 100%; gap: 4px; }
+  #studio .header-context { gap: 6px; }
+  #studio .backend-chip { gap: 5px; padding: 4px 7px; }
   #studio .divider { display: none; }
   #studio .libhead .libtitle { flex-basis: 100%; }
   #studio .song .actions { grid-column: 1 / -1; }
@@ -123,3 +125,4 @@ body { height: 100dvh; display: flex; flex-direction: column; padding: 0; }
 .slider.cpu-risk .knob { border-color: #f17e83; background: #391b20; color: #ff9ca0; }
 .slider.cpu-risk { border-color: #c94b50; }
 .cpu-dialog .check-row { margin: 16px 0; }
+.song .duration-warning { color: #e2b45d; line-height: 1.5; overflow-wrap: anywhere; }

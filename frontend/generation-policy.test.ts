@@ -1,17 +1,18 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { mountStudio } from "./dom-fixture";
-import { askCpuConfirmation, createGenerationGate, loadGenerationPolicy, needsCpuConfirmation, needsCpuWarning, updateCpuWarnings } from "./generation-policy";
+import { askCpuConfirmation, createGenerationGate, loadGenerationPolicy, needsCpuConfirmation, needsCpuWarning, updateCpuWarnings, updateObservedSynthesis } from "./generation-policy";
+import { backend } from "./backend";
 import { DEFAULT_FORM_PREFERENCES } from "./form-preferences";
 import { I18N, setLang } from "./i18n.js";
 import { LANGS } from "./locales";
 import { cpuTranslations, cpuBehaviorKeys, cpuBehaviorTranslations } from "./cpu-i18n";
-import type { Generation, GenerationPolicy } from "./types";
+import type { BackendStatus, ComponentBackend, Generation, GenerationPolicy } from "./types";
 const policy = (device: GenerationPolicy["backend"]): GenerationPolicy => ({ backend: device, cpu_iteration_behavior: "ask", recommended_steps: device === "gpu" ? 80 : 30, defaults: { ...DEFAULT_FORM_PREFERENCES } });
 const request: Generation = { prompt: "piano", inference_steps: 80, duration: 10, seed: 42, variants: 2, group_id: "old-group" };
 const deps = () => ({ policy: vi.fn().mockResolvedValue(policy("cpu")), ask: vi.fn().mockResolvedValue("continue"), generate: vi.fn().mockResolvedValue({ ids: ["new"] }), retry: vi.fn().mockResolvedValue({ id: "old" }) });
-beforeEach(() => { mountStudio(); setLang("de"); });
-afterEach(() => { vi.unstubAllGlobals(); });
+beforeEach(() => { mountStudio(); setLang("de"); updateObservedSynthesis(undefined); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it.each([["cpu", 30, false], ["cpu", 31, true], ["gpu", 200, false], ["unknown", 31, true]] as const)("checks %s at %s steps", (backend, steps, expected) => {
   expect(needsCpuConfirmation(backend, steps)).toBe(expected);
@@ -124,6 +125,149 @@ it("does not apply remembered CPU caps to GPU synthesis", async () => {
   const d = deps(); d.policy.mockResolvedValue({ ...policy("gpu"), cpu_iteration_behavior: "limit_30" });
   await createGenerationGate(d)(request);
   expect(d.generate).toHaveBeenCalledWith(request); expect(d.ask).not.toHaveBeenCalled();
+});
+
+it("sends an effective 100-step GPU request instead of a historical 120 without a CPU warning", async () => {
+  const d = deps(); d.policy.mockResolvedValue(policy("gpu"));
+  const legacy = Object.freeze({ ...request, inference_steps: 120 });
+  await createGenerationGate(d)(legacy);
+  expect(d.generate).toHaveBeenCalledWith({ ...legacy, inference_steps: 100 });
+  expect(d.ask).not.toHaveBeenCalled(); expect(legacy.inference_steps).toBe(120);
+});
+
+it.each([["acestep-v15-sft-Q8_0.gguf", 50], ["acestep-v15-turbo-Q8_0.gguf", 8]] as const)("preserves legacy automatic engine sampling for %s when making a new request", async (synthesis, steps) => {
+  const d = deps(); d.policy.mockResolvedValue(policy("gpu"));
+  const legacy = { ...request, inference_steps: 0, ...(synthesis ? { model_selection: { provider: "ace-step", synthesis, language: "lm" } } : {}) };
+  await createGenerationGate(d)(legacy);
+  expect(d.generate).toHaveBeenCalledWith({ ...legacy, inference_steps: steps });
+  expect(legacy.inference_steps).toBe(0);
+});
+
+it("leaves legacy automatic steps to the backend when no model context is known", async () => {
+  const d = deps(); d.policy.mockResolvedValue(policy("gpu"));
+  const legacy = { ...request, inference_steps: 0 };
+  await createGenerationGate(d)(legacy);
+  expect(d.generate).toHaveBeenCalledWith(legacy);
+});
+
+it("uses the backend's real legacy defaults instead of its CPU recommendation when model context is missing", async () => {
+  const d = deps();
+  d.policy.mockResolvedValue({ ...policy("cpu"), recommended_steps: 30, legacy_inference_steps: 50 });
+  await createGenerationGate(d)({ ...request, inference_steps: 0 });
+  expect(d.ask).toHaveBeenCalledWith("cpu");
+  d.ask.mockClear(); d.policy.mockResolvedValue({ ...policy("cpu"), recommended_steps: 8, legacy_inference_steps: 8 });
+  await createGenerationGate(d)({ ...request, inference_steps: 0 });
+  expect(d.ask).not.toHaveBeenCalled();
+});
+
+it("keeps an unavailable policy conservative for automatic legacy steps without a model", async () => {
+  vi.spyOn(backend, "generationPolicy").mockRejectedValue(new Error("Unavailable"));
+  const fallback = await loadGenerationPolicy();
+  expect(fallback.backend).toBe("unknown"); expect(fallback.legacy_inference_steps).toBe(50);
+  const d = deps(); d.policy.mockResolvedValue(fallback);
+  await createGenerationGate(d)({ ...request, inference_steps: 0 });
+  expect(d.ask).toHaveBeenCalledWith("unknown");
+});
+
+const observed = (device: ComponentBackend["backend"], state: ComponentBackend["state"] = "confirmed", engine: BackendStatus["state"] = "running"): BackendStatus => ({
+  state: engine,
+  synthesis: { state, backend: device, device: device === "metal" ? "MTL0" : null, reason: null },
+  language_model: { state: "confirmed", backend: "cpu", device: "CPU", reason: "cpu_requested" },
+});
+const warning = () => document.querySelector<HTMLElement>("#cpuGenerationWarning")!;
+function highSteps() { document.querySelector<HTMLInputElement>('[name="inference_steps"]')!.value = "80"; }
+
+it.each(["cuda", "vulkan", "metal"] as const)("uses confirmed %s synthesis instead of an unknown probe while the language model uses CPU", async device => {
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue(policy("unknown"));
+  highSteps(); await loadGenerationPolicy(); expect(warning().hidden).toBe(false);
+  updateObservedSynthesis(observed(device));
+  expect(warning().hidden).toBe(true);
+  expect(document.querySelector('[name="inference_steps"]')!.hasAttribute("aria-describedby")).toBe(false);
+  const d = deps(); d.policy.mockResolvedValue({ ...policy("unknown"), cpu_iteration_behavior: "limit_30" });
+  await createGenerationGate(d)(request);
+  expect(d.ask).not.toHaveBeenCalled(); expect(d.generate).toHaveBeenCalledWith(request);
+  expect(backend.generationPolicy).toHaveBeenCalledOnce();
+});
+
+it("uses confirmed CPU synthesis even when the standalone probe found a GPU", async () => {
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue(policy("gpu"));
+  highSteps(); await loadGenerationPolicy();
+  updateObservedSynthesis(observed("cpu"));
+  expect(warning().hidden).toBe(false); expect(warning().textContent).toBe(cpuTranslations.de[0]);
+  const d = deps(); d.policy.mockResolvedValue(policy("gpu"));
+  await createGenerationGate(d)(request); expect(d.ask).toHaveBeenCalledWith("cpu");
+});
+
+it.each([
+  undefined,
+  observed("unknown", "unconfirmed"),
+  observed("metal", "confirmed", "not_started"),
+  observed("metal", "confirmed", "stopped"),
+  observed("metal", "stopped"),
+  observed("unknown"),
+])("discards historical GPU evidence when the current health observation is %j", async status => {
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue({ ...policy("gpu"), probed_backend: "unknown" });
+  highSteps(); await loadGenerationPolicy(); updateObservedSynthesis(observed("metal"));
+  expect(warning().hidden).toBe(true);
+  updateObservedSynthesis(status);
+  expect(warning().hidden).toBe(false); expect(warning().textContent).toBe(cpuTranslations.de[1]);
+});
+
+it("keeps a genuine GPU probe as the fallback after observed CPU synthesis stops", async () => {
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue({ ...policy("cpu"), probed_backend: "gpu" });
+  highSteps(); await loadGenerationPolicy(); updateObservedSynthesis(observed("cpu"));
+  expect(warning().hidden).toBe(false);
+  updateObservedSynthesis(observed("cpu", "stopped", "stopped"));
+  expect(warning().hidden).toBe(true);
+});
+
+it("does not let a delayed unknown policy override newer confirmed Metal synthesis or cap the next request", async () => {
+  let finish!: (value: GenerationPolicy) => void;
+  vi.spyOn(backend, "generationPolicy").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  highSteps(); const pending = loadGenerationPolicy();
+  updateObservedSynthesis(observed("metal")); finish({ ...policy("unknown"), probed_backend: "unknown" });
+  const result = await pending;
+  expect(result.backend).toBe("gpu"); expect(warning().hidden).toBe(true);
+  const d = deps(); d.policy.mockResolvedValue({ ...result, cpu_iteration_behavior: "limit_30" });
+  await createGenerationGate(d)(request); expect(d.generate).toHaveBeenCalledWith(request);
+});
+
+it("does not revive an observed GPU from a delayed policy response after the engine stops", async () => {
+  let finish!: (value: GenerationPolicy) => void;
+  vi.spyOn(backend, "generationPolicy").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  highSteps(); updateObservedSynthesis(observed("metal"));
+  const pending = loadGenerationPolicy();
+  updateObservedSynthesis(observed("metal", "stopped", "stopped"));
+  finish({ ...policy("gpu"), probed_backend: "unknown" });
+  expect((await pending).backend).toBe("unknown");
+  expect(warning().hidden).toBe(false); expect(warning().textContent).toBe(cpuTranslations.de[1]);
+});
+
+it.each([["metal", "cpu"], ["cpu", "gpu"]] as const)("lets a fresh %s → %s policy supersede older health evidence before admission", async (previous, current) => {
+  const response = { ...policy(current), probed_backend: current === "cpu" ? "gpu" : "unknown" } as GenerationPolicy;
+  vi.spyOn(backend, "generationPolicy").mockResolvedValue(response);
+  highSteps(); updateObservedSynthesis(observed(previous));
+  const d = { ...deps(), policy: loadGenerationPolicy };
+  await createGenerationGate(d)(request);
+  expect(warning().hidden).toBe(current === "gpu");
+  if (current === "cpu") expect(d.ask).toHaveBeenCalledWith("cpu");
+  else expect(d.ask).not.toHaveBeenCalled();
+  expect(d.generate).toHaveBeenCalledWith(request);
+});
+
+it("keeps the latest policy backend when an older policy response arrives afterwards", async () => {
+  let finishOld!: (value: GenerationPolicy) => void, finishNew!: (value: GenerationPolicy) => void;
+  vi.spyOn(backend, "generationPolicy")
+    .mockReturnValueOnce(new Promise(resolve => { finishOld = resolve; }))
+    .mockReturnValueOnce(new Promise(resolve => { finishNew = resolve; }));
+  highSteps(); updateObservedSynthesis(observed("metal"));
+  const old = loadGenerationPolicy(), current = loadGenerationPolicy();
+  finishNew({ ...policy("cpu"), probed_backend: "gpu" }); await current;
+  finishOld({ ...policy("gpu"), probed_backend: "unknown" });
+  expect((await old).backend).toBe("cpu");
+  expect(warning().hidden).toBe(false); expect(warning().textContent).toBe(cpuTranslations.de[0]);
+  updateObservedSynthesis(observed("cpu", "stopped", "stopped"));
+  expect(warning().hidden).toBe(true);
 });
 
 it("localizes the checkbox, settings choices, scope and save error in all interface languages", () => {

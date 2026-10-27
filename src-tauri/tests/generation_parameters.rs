@@ -14,6 +14,8 @@ use music_generator::{
 use serde_json::{json, Value};
 use std::{collections::HashMap, sync::Arc};
 use tokio_util::sync::CancellationToken;
+#[path = "support/wav.rs"]
+mod wav;
 
 fn request() -> GenerateRequest {
     GenerateRequest {
@@ -97,7 +99,7 @@ async fn lm_receives_requested_caption_and_duration_without_rewriting_saved_para
             "/synth",
             post(|Json(request): Json<Value>| async move {
                 assert_eq!(request["caption"], "Different model description");
-                assert_eq!(request["duration"], 85);
+                assert_eq!(request["duration"].as_f64(), Some(30.0));
                 assert_eq!(
                     request["audio_codes"].as_str().unwrap().split(',').count(),
                     150
@@ -121,7 +123,7 @@ async fn lm_receives_requested_caption_and_duration_without_rewriting_saved_para
                             serde_json::to_vec(&lm_result).unwrap(),
                         )
                     } else {
-                        ([(CONTENT_TYPE, "audio/wav")], b"RIFFtest".to_vec())
+                        ([(CONTENT_TYPE, "audio/wav")], wav::tone(30.0))
                     }
                 }
             }),
@@ -141,8 +143,11 @@ async fn lm_receives_requested_caption_and_duration_without_rewriting_saved_para
         .await
         .unwrap();
     server.abort();
-    assert_eq!(audio, b"RIFFtest");
+    assert_eq!(audio, wav::tone(30.0));
     assert_eq!(extension, "wav");
+    let songs_dir = std::path::PathBuf::from(db.settings().unwrap().songs_dir);
+    std::fs::create_dir_all(&songs_dir).unwrap();
+    std::fs::write(songs_dir.join("fixture.wav"), &audio).unwrap();
     assert!(db.finish(&id, "fixture.wav", &meta).unwrap());
     let song = db.song(&id).unwrap();
     assert_eq!(params, original);
@@ -150,5 +155,8 @@ async fn lm_receives_requested_caption_and_duration_without_rewriting_saved_para
     assert_eq!(song.params["duration"], 30.0);
     assert_eq!(song.params["prompt"], "A lighthouse in the rain");
     assert_eq!(song.params["style"], "quiet piano");
-    assert_eq!(song.result_meta.unwrap()["duration"], 85);
+    let meta = song.result_meta.unwrap();
+    assert_eq!(meta["duration"], 30.0);
+    assert_eq!(meta["requested_duration"], 30.0);
+    assert_eq!(meta["lm_duration"], 85);
 }

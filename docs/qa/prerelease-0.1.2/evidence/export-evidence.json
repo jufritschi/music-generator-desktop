@@ -1,0 +1,44 @@
+{
+  "original_song_rows_unchanged": true,
+  "original_song_count": 5,
+  "new_qa_song_count": 2,
+  "wav_bytes_equal_original": true,
+  "lyrics_equal_displayed_result": true,
+  "zip_crc_ok": true,
+  "zip_entries": [
+    "Silent Dragons Lullaby A.wav",
+    "Silent Dragons Lullaby B.wav",
+    "Jazz Dream Rests A.wav",
+    "Three three four B.wav",
+    "Golden Hour River.wav",
+    "Euphoric a music box and cello walking through fog at dawn.wav",
+    "QA 012  30 Sekunden.wav"
+  ],
+  "zip_wav_count": 7,
+  "zip_all_audio_hashes_match_originals": true,
+  "mp3_ffprobe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "bit_rate": "192000"
+      }
+    ],
+    "format": {
+      "duration": "89.208000"
+    }
+  },
+  "export_directory_after_restart": [
+    [
+      "export_format",
+      "\"mp3\""
+    ],
+    [
+      "last_export_dir",
+      "\"/private/tmp/music-generator-qa-012/exports\""
+    ]
+  ]
+}

@@ -98,6 +98,11 @@ export interface ImportProgress { phase: "checking" | "copying" | "committing"; 
 
 export interface GenerationPolicy {
   backend: "cpu" | "gpu" | "unknown";
+  legacy_inference_steps?: number;
+  probed_backend?: "cpu" | "gpu" | "unknown";
+  detected_backend?: ComponentBackend["backend"];
+  lm_device?: "auto" | "cpu";
+  backend_status?: BackendStatus;
   cpu_iteration_behavior: CpuIterationBehavior;
   recommended_steps: number;
   defaults: GenerationFormPreferences;

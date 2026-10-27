@@ -1,0 +1,18 @@
+[
+  {
+    "args": [],
+    "returncode": 0,
+    "seconds": 0.11497800000000001,
+    "stdout": "\"gpu\"\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "--cpu"
+    ],
+    "returncode": 0,
+    "seconds": 0.013431209,
+    "stdout": "\"cpu\"\n",
+    "stderr": "load_backend: loaded CPU backend from /private/tmp/music-generator-qa-012/fixed/Music Generator.app/Contents/Resources/engine/libggml-cpu.so\n"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "mode": "main-cpu",
+  "seconds": 0.015791917000001376,
+  "exit_code": 0,
+  "stdout": "\"cpu\"\n",
+  "stderr": "load_backend: loaded CPU backend from /private/tmp/music-generator-qa-012/copied/Music Generator.app/Contents/Resources/engine/libggml-cpu.so\n"
+}
