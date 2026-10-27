@@ -1,3 +1,4 @@
+import { startGeneration, loadGenerationPolicy, updateCpuWarnings } from "./generation-policy";
 import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
 import { extractStyleTags } from "./style-tags";
 import { measureMelody, describeIdea, toWav } from "./melody";
@@ -94,7 +95,13 @@ function updateSlider(box) {
   if (inp.name === "variants") $("#genBtn").textContent = v > 1 ? t("generate_n", v) : t("generate");
 }
 const showDur = () => document.querySelectorAll(".slider").forEach(updateSlider);
-export function initializeStudioFormPreferences() { return initializeGenerationFormPreferences(form, showDur); }
+export async function initializeStudioFormPreferences() {
+  await loadGenerationPolicy(generationModels());
+  return initializeGenerationFormPreferences(form, () => { showDur(); updateCpuWarnings(); }, async () => (await loadGenerationPolicy(generationModels())).defaults);
+}
+form.addEventListener("input", updateCpuWarnings);
+document.addEventListener("generation-model-changed", () => { void loadGenerationPolicy(generationModels()); });
+document.addEventListener("langchange", updateCpuWarnings);
 document.querySelectorAll(".slider").forEach((b) => { b.querySelector("input").addEventListener("input", () => updateSlider(b)); updateSlider(b); });
 // Lyrics: eingeklappt; bei Instrumental steht "[Instrumental]" im Feld, Klick ins Feld schaltet Instrumental aus
 const LYRICS_PLACEHOLDER = "[verse]\n…\n\n[chorus]\n…";
@@ -170,8 +177,11 @@ form.addEventListener("submit", async (e) => {
   btn.classList.remove("fired"); void btn.offsetWidth; btn.classList.add("fired");   // Animation auch bei Enter/Alt+G
   btn.disabled = true;
   try {
-    const r = await backend.generate(readForm());
-    announce(t("an_queued", r.ids.length));
+    const r = await startGeneration(readForm(), undefined, () => {
+      form.inference_steps.value = "30";
+      form.inference_steps.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    if (r) announce(t("an_queued", r.ids.length));
     refresh();
   } catch (err) { alert(t("error") + ": " + modelErrorText(err, t)); }
   setTimeout(() => { btn.disabled = false; }, 600);
@@ -202,7 +212,7 @@ function fillForm(s) {
   const sampling = samplingForSong(p);
   form.inference_steps.value = sampling.inference_steps;
   form.lm_temperature.value = sampling.lm_temperature;
-  showDur();
+  showDur(); updateCpuWarnings();
   setSelect(form.keyscale, p.keyscale, true);
   setSelect(form.timesignature, p.timesignature);
   form.vocal_language.value = p.vocal_language || "en";
@@ -487,7 +497,7 @@ $("#library").addEventListener("click", async (e) => {
   if (a === "move") return moveMenu(btn, id);
   if (a === "lyrics") { openLyrics.has(id) ? openLyrics.delete(id) : openLyrics.add(id); return render(); }
   if (a === "retry") {
-    try { await backend.retry(id); } catch (error) { alert(modelErrorText(error, t)); }
+    try { await startGeneration({ ...s.params, title: s.title || "", folder_id: s.folder_id }, id); } catch (error) { alert(modelErrorText(error, t)); }
   }
   if (a === "more") {
     const p = s.params;
@@ -713,7 +723,7 @@ $("#btnSettings").onclick = async () => {
   const s = await backend.settings();
   settingsBefore = s;
   sf.expert_mode.checked = s.expert_mode;
-  for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format"]) sf[k].value = s[k];
+  for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format", "cpu_iteration_behavior"]) sf[k].value = s[k];
   sf.export_format.querySelector("option[value=mp3]").disabled = !s.mp3_available;
   $("#expHint").hidden = s.mp3_available;
   $("#settingsIntelHint").hidden = !s.cpu_only;
@@ -722,7 +732,7 @@ $("#btnSettings").onclick = async () => {
   dlg.showModal();
 };
 const saveSettings = async () => {
-  const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
+  const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, cpu_iteration_behavior: sf.cpu_iteration_behavior.value, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
   if (!Object.keys(values).length) return;
   try { await backend.saveSettings(values); }
   catch (err) { alert(err.message === "mp3_failed" ? t("mp3_failed") : modelErrorText(err, t)); $("#btnSettings").click(); }

@@ -8,6 +8,7 @@ use std::path::Path;
 #[serde(default)]
 pub struct SettingsPatch {
     pub expert_mode: Option<bool>,
+    pub cpu_iteration_behavior: Option<crate::types::CpuIterationBehavior>,
     pub lm_device: Option<String>,
     pub export_format: Option<String>,
     pub timeout_minutes: Option<f64>,
@@ -16,8 +17,8 @@ pub struct SettingsPatch {
 }
 
 impl SettingsPatch {
-    pub(super) fn expert_only(&self) -> bool {
-        self.expert_mode.is_some()
+    pub(super) fn preferences_only(&self) -> bool {
+        (self.expert_mode.is_some() || self.cpu_iteration_behavior.is_some())
             && self.lm_device.is_none()
             && self.export_format.is_none()
             && self.timeout_minutes.is_none()
@@ -34,6 +35,9 @@ impl SettingsPatch {
         let selection_changed = self.dit.is_some();
         if let Some(enabled) = self.expert_mode {
             settings.expert_mode = enabled;
+        }
+        if let Some(behavior) = self.cpu_iteration_behavior {
+            settings.cpu_iteration_behavior = behavior;
         }
         if let Some(device) = self.lm_device {
             settings.lm_device = device;

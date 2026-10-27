@@ -1,3 +1,4 @@
+import { loadGenerationPolicy } from "./generation-policy";
 import { modelErrorText, modelLabel } from "./expert-mode";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -25,7 +26,7 @@ export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolea
     element("#setupContent").innerHTML = `
       <form id="setupForm"><fieldset id="setupFields">
         <label class="field"><span class="lbl" data-i18n="language"></span><select id="setupLanguage"></select></label>
-        <section class="hardware-card"><h2 data-i18n="desktop_hardware"></h2><p id="hardwareInfo"></p><p id="intelCpuHint" class="small" data-i18n="desktop_intel_cpu_hint" hidden></p></section>
+        <section class="hardware-card"><h2 data-i18n="desktop_hardware"></h2><p id="hardwareInfo"></p><p id="cpuSetupHint" class="cpu-warning" hidden></p><p id="intelCpuHint" class="small" data-i18n="desktop_intel_cpu_hint" hidden></p></section>
         <section class="import-card"><button type="button" class="sek" id="importLibrary" data-i18n="desktop_import"></button><p class="small" data-i18n="desktop_import_hint"></p><p id="importStatus" role="status"></p></section>
         <label class="field"><span class="lbl" data-i18n="desktop_models_folder"></span><div class="path-picker"><input id="setupModels" required><button type="button" class="sek" data-setup-pick="setupModels" data-i18n="desktop_browse"></button></div></label>
         <label class="field"><span class="lbl" data-i18n="songs_dir"></span><div class="path-picker"><input id="setupSongs" required><button type="button" class="sek" data-setup-pick="setupSongs" data-i18n="desktop_browse"></button></div></label>
@@ -77,6 +78,10 @@ export async function showSetup(data: Bootstrap, ready: (resetSelection?: boolea
   element("#hardwareInfo").textContent = `${bytes(data.hardware.ram_bytes)} RAM · ${data.hardware.gpu}${data.hardware.vram_bytes ? ` · ${bytes(data.hardware.vram_bytes)} VRAM` : ""}`;
   element("#intelCpuHint").hidden = !data.hardware.cpu_only;
   element("#setupError").textContent = "";
+  const policy = await loadGenerationPolicy();
+  const hint = element("#cpuSetupHint");
+  hint.hidden = policy.backend === "gpu";
+  hint.dataset.i18n = policy.backend === "cpu" ? "cpu_setup" : "cpu_unknown_setup";
   applyI18n();
   await updateEstimate(languageSizes.find(size => data.settings.lm_model.includes(`-${size}-`)) || data.hardware.recommended_lm);
 }

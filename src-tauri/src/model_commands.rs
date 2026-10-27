@@ -23,6 +23,12 @@ pub fn model_catalog(state: State<'_, Arc<AppState>>) -> Result<Value> {
             .map(|model| {
                 let mut value = serde_json::to_value(model).expect("model serialization");
                 let path = root.join(&model.file);
+                value["suggested_steps"] = json!(model.recommended_steps.map(|steps| {
+                    crate::synthesis_policy::recommended_steps(
+                        state.synthesis_probe.cached(),
+                        steps,
+                    )
+                }));
                 value["verified"] = json!(verifier.is_verified(&path, &model.sha256));
                 value["present"] = json!(path.is_file());
                 value["partial_bytes"] = json!(root

@@ -580,3 +580,88 @@ async fn move_reports_byte_progress_and_can_cancel_inside_a_file() {
     assert_eq!(events[0].total_bytes, 14);
     assert!(events.iter().any(|p| p.copied_bytes > 0));
 }
+
+#[tokio::test]
+async fn cpu_decision_is_targeted_durable_and_editable_while_generating() {
+    use crate::types::CpuIterationBehavior::{Ask, Continue, Limit30};
+    let library = Library::new();
+    assert_eq!(library.db.settings().unwrap().cpu_iteration_behavior, Ask);
+    let legacy: Settings = serde_json::from_value(json!({})).unwrap();
+    assert_eq!(legacy.cpu_iteration_behavior, Ask);
+    let generation = library
+        .state
+        .runtime
+        .try_begin(OperationKind::Generation)
+        .unwrap();
+    let original = library.db.settings().unwrap();
+    for behavior in [Limit30, Continue, Ask] {
+        let settings = save(
+            library.state.clone(),
+            SettingsPatch {
+                cpu_iteration_behavior: Some(behavior),
+                ..Default::default()
+            },
+            |_| panic!("Preference updates must not request folder access"),
+        )
+        .await
+        .unwrap();
+        assert_eq!(settings.cpu_iteration_behavior, behavior);
+        assert_eq!(settings.songs_dir, original.songs_dir);
+        assert_eq!(settings.lm_device, original.lm_device);
+        assert_eq!(settings.timeout_minutes, original.timeout_minutes);
+        assert!(library.state.runtime.is_busy());
+        assert!(!generation.cancellation().is_cancelled());
+        let reopened = Database::open(library.root.path()).unwrap();
+        assert_eq!(
+            reopened.settings().unwrap().cpu_iteration_behavior,
+            behavior
+        );
+    }
+    assert!(
+        serde_json::from_value::<SettingsPatch>(json!({"cpu_iteration_behavior":"invalid"}))
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn combined_preferences_roll_back_atomically_on_storage_failure() {
+    let library = Library::new();
+    library.db.lock().execute_batch("CREATE TRIGGER reject_cpu BEFORE INSERT ON settings WHEN NEW.key='cpu_iteration_behavior' BEGIN SELECT RAISE(ABORT,'injected failure'); END;").unwrap();
+    let before = serde_json::to_value(library.db.settings().unwrap()).unwrap();
+    assert!(save(
+        library.state.clone(),
+        SettingsPatch {
+            expert_mode: Some(true),
+            cpu_iteration_behavior: Some(crate::types::CpuIterationBehavior::Continue),
+            ..Default::default()
+        },
+        |_| panic!("No folder grant for preference-only changes")
+    )
+    .await
+    .is_err());
+    assert_eq!(
+        serde_json::to_value(library.db.settings().unwrap()).unwrap(),
+        before
+    );
+}
+
+#[tokio::test]
+async fn cpu_decision_can_be_saved_together_with_regular_settings() {
+    let library = Library::new();
+    let settings = save(
+        library.state.clone(),
+        SettingsPatch {
+            timeout_minutes: Some(45.0),
+            cpu_iteration_behavior: Some(crate::types::CpuIterationBehavior::Limit30),
+            ..Default::default()
+        },
+        |_| Ok(()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(settings.timeout_minutes, 45.0);
+    assert_eq!(
+        serde_json::to_value(settings.cpu_iteration_behavior).unwrap(),
+        "limit_30"
+    );
+}

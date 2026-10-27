@@ -4,9 +4,9 @@ import { samplingForSong } from "./song-sampling";
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("uses the upstream defaults only for a fresh generation form", () => {
+it("uses the upstream defaults conservative defaults for an uninitialized generation form", () => {
   const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
-  expect(html.match(/<input name="inference_steps"[^>]*value="([^"]+)"/)?.[1]).toBe("80");
+  expect(html.match(/<input name="inference_steps"[^>]*value="([^"]+)"/)?.[1]).toBe("30");
   expect(html.match(/<input name="lm_temperature"[^>]*value="([^"]+)"/)?.[1]).toBe("1.2");
   expect(html.match(/<input name="duration"[^>]*max="([^"]+)"/)?.[1]).toBe("600");
   expect(html).toContain('id="lenHint" hidden aria-live="polite"');
@@ -48,4 +48,8 @@ it("updates both tooltips in all twelve languages while retaining desktop messag
     expect(I18N[lang].len_long).toBeTruthy();
     expect(I18N[lang].err_timeout.split("–")[1]?.trim()).toBeTruthy();
   }
+});
+
+it("keeps turbo's legacy automatic eight steps when checking a retry", () => {
+  expect(samplingForSong({ inference_steps: 0, model_selection: { synthesis: "acestep-v15-xl-turbo-Q8_0.gguf" } }).inference_steps).toBe(8);
 });

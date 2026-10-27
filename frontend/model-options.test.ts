@@ -82,3 +82,11 @@ it("never exposes a saved advanced selection through the RAM-filter exception", 
   expect(profile(c, saved).allowed).toBe(false);
   expect(saved.synthesis).toBe("acestep-v15-turbo-shift3-Q6_K.gguf");
 });
+
+it("shows the backend's device-adjusted recommendation without changing the model catalog default", () => {
+  const c = catalog();
+  const synthesis = c.models.find(m => m.file === selection().synthesis)!;
+  synthesis.suggested_steps = 30;
+  expect(profile(c, selection()).steps).toBe(30);
+  expect(synthesis.recommended_steps).toBe(80);
+});

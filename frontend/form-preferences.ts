@@ -4,7 +4,7 @@ import { t } from "./i18n.js";
 import type { GenerationFormPreferences } from "./types";
 
 export const DEFAULT_FORM_PREFERENCES: Readonly<GenerationFormPreferences> = Object.freeze({
-  duration: 90, bpm: 0, inference_steps: 80, lm_temperature: 1.2, variants: 2,
+  duration: 90, bpm: 0, inference_steps: 30, lm_temperature: 1.2, variants: 2,
 });
 const fields = Object.keys(DEFAULT_FORM_PREFERENCES) as (keyof GenerationFormPreferences)[];
 
@@ -39,7 +39,7 @@ export function createPreferenceWriter(save: (values: GenerationFormPreferences)
   };
 }
 
-export function createFormPreferences(form: HTMLFormElement, refresh: () => void) {
+export function createFormPreferences(form: HTMLFormElement, refresh: () => void, defaults = async (): Promise<GenerationFormPreferences> => ({ ...DEFAULT_FORM_PREFERENCES })) {
   const input = (name: keyof GenerationFormPreferences) => form.elements.namedItem(name) as HTMLInputElement;
   const error = form.querySelector<HTMLElement>("#genPreferencesError")!;
   let failed = false;
@@ -72,7 +72,7 @@ export function createFormPreferences(form: HTMLFormElement, refresh: () => void
   }
   const ready = (async () => {
     try { apply(await backend.generationFormPreferences()); }
-    catch { apply({ ...DEFAULT_FORM_PREFERENCES }); loadFailed = true; reportError(true); }
+    catch { apply(await defaults()); loadFailed = true; reportError(true); }
     previous = JSON.stringify(snapshot());
     loaded = true;
     const changed = (event: Event) => {
@@ -80,8 +80,8 @@ export function createFormPreferences(form: HTMLFormElement, refresh: () => void
     };
     form.addEventListener("input", changed);
     form.addEventListener("change", changed);
-    form.querySelector<HTMLButtonElement>("#resetGenPreferences")!.onclick = () => {
-      apply({ ...DEFAULT_FORM_PREFERENCES }); capture(true);
+    form.querySelector<HTMLButtonElement>("#resetGenPreferences")!.onclick = async () => {
+      apply(await defaults()); capture(true);
     };
     document.addEventListener("langchange", () => reportError(failed));
   })();
@@ -98,8 +98,8 @@ export function createFormPreferences(form: HTMLFormElement, refresh: () => void
 }
 
 let controller: ReturnType<typeof createFormPreferences> | undefined;
-export async function initializeGenerationFormPreferences(form: HTMLFormElement, refresh: () => void): Promise<void> {
-  controller ??= createFormPreferences(form, refresh);
+export async function initializeGenerationFormPreferences(form: HTMLFormElement, refresh: () => void, defaults?: () => Promise<GenerationFormPreferences>): Promise<void> {
+  controller ??= createFormPreferences(form, refresh, defaults);
   await controller.ready;
 }
 export function captureGenerationFormPreferences(): void { controller?.capture(); }

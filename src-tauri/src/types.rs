@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CpuIterationBehavior {
+    #[default]
+    Ask,
+    #[serde(rename = "limit_30")]
+    Limit30,
+    Continue,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -14,6 +24,7 @@ pub struct Settings {
     pub lm_device: String,
     pub export_format: String,
     pub expert_mode: bool,
+    pub cpu_iteration_behavior: CpuIterationBehavior,
     pub poll_interval: f64,
     pub timeout_minutes: f64,
     pub mode: String,
@@ -35,6 +46,7 @@ impl Default for Settings {
             lm_device: "auto".into(),
             export_format: "wav".into(),
             expert_mode: false,
+            cpu_iteration_behavior: CpuIterationBehavior::Ask,
             poll_interval: 1.5,
             timeout_minutes: 30.0,
             mode: "single".into(),

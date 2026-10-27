@@ -1,3 +1,4 @@
+import { loadGenerationPolicy } from "./generation-policy";
 import { creatorOptions, profileKey } from "./creator-models";
 import { modelAllowed, modelErrorText, modelLabel } from "./expert-mode";
 import { listen } from "@tauri-apps/api/event";
@@ -42,6 +43,7 @@ export function generationModelAllowed(): boolean {
 }
 
 function compact(): void {
+  document.dispatchEvent(new Event("generation-model-changed"));
   picker("expertModelWarning").hidden = generationModelAllowed();
   const options = creatorOptions(recommendations, chosen, expertMode);
   const select = picker<HTMLSelectElement>("creatorModel");
@@ -226,10 +228,11 @@ export async function initializeModelPicker(resetSelection = false): Promise<voi
     };
   }
   picker<HTMLInputElement>("modelsCompatible").onchange = render;
-  picker<HTMLButtonElement>("modelRecommended").onclick = () => {
+  picker<HTMLButtonElement>("modelRecommended").onclick = async () => {
     if (!catalog) return;
-    const steps = profile(catalog, draft).steps;
-    if (steps && chosen?.synthesis === draft.synthesis && chosen.provider === draft.provider) {
+    const selection = { ...draft };
+    const steps = (await loadGenerationPolicy(selection)).recommended_steps;
+    if (steps && chosen?.synthesis === selection.synthesis && chosen.provider === selection.provider && draft.synthesis === selection.synthesis) {
       const input = element<HTMLInputElement>('#genForm [name="inference_steps"]');
       input.value = String(steps); input.dispatchEvent(new Event("input", { bubbles: true }));
       picker("modelProgressText").textContent = `${t("iterations")}: ${steps}`;

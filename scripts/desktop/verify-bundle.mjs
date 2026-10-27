@@ -50,6 +50,8 @@ try {
   if(platform==="linux")await verifyLinuxRuntime(engine,target.backend,path.join(work,"squashfs-root"));
   const app = extracted.find(file => path.basename(file) === (platform === "windows" ? "Music Generator.exe" : "music-generator"));
   assert(app, "Application executable is missing");
+  const probe = JSON.parse(execFileSync(app, ["--synthesis-backend-probe", engine, "--cpu"], { cwd: engine, encoding: "utf8", timeout: 15000 }).trim().split(/\r?\n/).at(-1));
+  assert.equal(probe, "cpu", "Relocated model-free backend probe must initialize the CPU runtime");
   if (platform === "macos") await run("codesign", ["--verify", "--deep", "--strict", path.dirname(path.dirname(path.dirname(app)))]);
   if (platform === "windows") {
     assert(await exists(path.join(path.dirname(app), "WebView2/msedgewebview2.exe")), "Fixed WebView2 is missing");

@@ -22,6 +22,7 @@ pub mod sandbox;
 pub mod setup;
 mod startup;
 pub mod state;
+pub mod synthesis_policy;
 pub mod titles;
 pub mod types;
 mod updates;
@@ -101,6 +102,7 @@ pub fn run() {
             commands::get_settings,
             commands::save_settings,
             commands::get_generation_form_preferences,
+            commands::generation_policy,
             commands::save_generation_form_preferences,
             commands::analyze,
             commands::health,
