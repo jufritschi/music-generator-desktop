@@ -11,6 +11,7 @@ Basis: lokaler Zweig `codex/iterations-200-0.1.2`; Datum: 27. Oktober 2026. Dies
 ## Tatsächlich ausgeführte Prüfungen
 
 - Frontend: **348 bestanden**,0 Fehler;37 Dateien.
+- Desktopskripte: **32 bestanden**, einschließlich des zunächst fehlschlagenden echten Windows-Git-Checkout-Vertrags für LF-Patchdateien.
 - Vollständige Rust-Suite: **197 bestanden**,0 Fehler,1 absichtlich ignorierte Subprozess-Fixture.
 - Gezielt Rust:12 Engine-/Duration-Verträge,5 Iterations-/Queue-Verträge,2 historische Projektionen und7 Formularpräferenztests bestanden.
 - TypeScript/Vite-Build, ESLint, Rustfmt und Clippy für alle Targets mit Warnungen als Fehler bestanden.

@@ -12,7 +12,9 @@ Der Benutzer hat die Rückkehr des maximalen Iterationswerts auf 200 ausdrückli
 
 ## Verifikation
 
-**576 lokale Tests bestanden:** 348 Frontend, 31 Desktopskripte und 197 Rust; eine absichtlich ignorierte Rust-Subprozess-Fixture. TypeScript/Vite, ESLint, Rustfmt und Clippy mit Warnungen als Fehler bestanden. [Automatisierter Bericht](automated-tests.md).
+**577 lokale Tests bestanden:** 348 Frontend, 32 Desktopskripte und 197 Rust; eine absichtlich ignorierte Rust-Subprozess-Fixture. TypeScript/Vite, ESLint, Rustfmt und Clippy mit Warnungen als Fehler bestanden. [Automatisierter Bericht](automated-tests.md).
+
+Der erste neue Windows-CI-Lauf deckte eine CRLF-Konvertierung der Patchdateien beim Git-Checkout auf. Die Dateien werden jetzt ausdrücklich mit LF ausgecheckt; ein echter Git-Checkout mit aktivem Windows-Autocrlf reproduzierte den Fehler zunächst und besteht nach der Korrektur. Enginequellen und die auf dem M5 geprüften Binärdateien ändern sich dadurch nicht.
 
 Die macOS-Engine wurde tatsächlich neu gebaut. Ihr Produktionsvertrag liefert 0→50, 120→120, 200→200 und 201→200; Titelruntime und Engineprovenienz sind verifiziert. Die Buildrezepte prüfen denselben Vertrag auch beim verlagerten Bundle.
 
