@@ -13,7 +13,7 @@ async function pick(path?: string): Promise<string | null> {
 }
 
 /// A fresh dialog owns its listeners and state, so reopening never reuses a stale preview.
-export async function openLibraryAssistant(mode: Mode, target: string, onImported?: (songsDir: string) => void): Promise<void> {
+export async function openLibraryAssistant(mode: Mode, target: string, platform: string, onImported?: (songsDir: string) => void): Promise<void> {
   if (document.querySelector("#importWizard")) return;
   const dialog = document.createElement("dialog");
   dialog.id = "importWizard";
@@ -42,7 +42,9 @@ export async function openLibraryAssistant(mode: Mode, target: string, onImporte
     <div class="submit"><button type="button" class="sek" id="importClose"></button><button type="button" class="aktion" id="importRun" disabled></button></div>`;
   document.body.append(dialog);
   const get = <T extends HTMLElement = HTMLElement>(selector: string): T => dialog.querySelector<T>(selector)!;
-  const text = (selector: string, key: string) => { get(selector).textContent = t(key); };
+  const platformKeys = ["import_choose_target", "import_choose_songs", "import_source_access", "import_songs_access", "import_target_access"];
+  const translate = (key: string) => t(platform !== "macos" && platformKeys.includes(key) ? `${key}_plain` : key);
+  const text = (selector: string, key: string) => { get(selector).textContent = translate(key); };
   text("#importHeading", mode === "import" ? "import_title" : "import_move_title");
   text("#importHint", mode === "import" ? "import_hint" : "import_move_hint");
   text("#importSourceStep h3", "import_step_source");
@@ -51,6 +53,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, onImporte
   text("#importTargetPick", "import_choose_target");
   text("#importSongsPick", "import_choose_songs");
   text("#importSandbox", "import_sandbox");
+  get("#importSandbox").hidden = platform !== "macos";
   text("#importReviewHeading", "import_step_review");
   text("#importPartialRow span", "import_allow_partial");
   text("#importMissingDetails summary", "import_missing_list");
@@ -120,7 +123,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, onImporte
       checked = result;
       get("#importSummary").textContent = `${t("import_songs")}: ${result.songs} · ${t("import_folders")}: ${result.folders} · ${t("import_audio")}: ${result.files} · ${bytes(result.bytes)} / ${result.free_bytes === null ? "—" : bytes(result.free_bytes)} ${t("import_free")}\n${request.songs_dir}`;
       get("#importIssues").replaceChildren(...result.issues.map(issue => {
-        const li = document.createElement("li"); li.textContent = `${t(`import_${issue.code}`)} · ${issue.path}`; return li;
+        const li = document.createElement("li"); li.textContent = `${translate(`import_${issue.code}`)} · ${issue.path}`; return li;
       }));
       get("#importSongsPick").hidden = !result.songs_source || (mode === "move" && !result.issues.some(issue => issue.code === "songs_access"));
       get("#importSongsPath").hidden = !result.songs_source;
@@ -134,7 +137,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, onImporte
         if (path && current === sequence) { request.root = path; request.songs_source = null; get("#importSourcePath").textContent = path; await check(); }
       }
       get<HTMLButtonElement>("#importRun").disabled = busy || !checked?.can_import;
-    } catch (error) { if (current === sequence) get("#importError").textContent = errorText(error); }
+    } catch (error) { if (current === sequence) get("#importError").textContent = errorText(error, translate); }
     finally {
       if (current === sequence && !busy) {
         get("#importProgress").hidden = true;
@@ -171,7 +174,7 @@ export async function openLibraryAssistant(mode: Mode, target: string, onImporte
     request.allow_partial = get<HTMLInputElement>("#importPartial").checked;
     void check();
   };
-  function showError(error: unknown): void { get("#importError").textContent = errorText(error); }
+  function showError(error: unknown): void { get("#importError").textContent = errorText(error, translate); }
   get("#importClose").onclick = () => { if (busy) void backend.cancelSetup(); else dialog.close(); };
   get("#importRun").onclick = () => { void (async () => {
     if (!checked?.can_import || busy) return;
@@ -211,10 +214,10 @@ export async function openLibraryAssistant(mode: Mode, target: string, onImporte
   if (mode === "move") await check();
 }
 
-function errorText(error: unknown): string {
+function errorText(error: unknown, translate: (key: string) => string): string {
   const value = error instanceof Error ? error.message : String(error);
   if (value === "Operation cancelled") return t("import_cancelled");
-  return value.startsWith("import_") ? t(value) : value;
+  return value.startsWith("import_") ? translate(value) : value;
 }
 
 function bytes(value: number): string {

@@ -102,3 +102,82 @@ for (const [language, values] of Object.entries(importMessages)) values.push(com
 for (const [language, values] of Object.entries(importMessages)) {
   Object.assign(I18N[language as keyof typeof I18N], Object.fromEntries(importKeys.map((key, index) => [`import_${key}`, values[index]])));
 }
+
+export const plainImportKeys = ["choose_target", "choose_songs", "source_access", "songs_access", "target_access"] as const;
+export const plainImportMessages: Record<string, string[]> = {
+  de: [
+    "Anderen Zielordner wählen…", "Alten Song-Ordner wählen…",
+    "Bibliotheksordner ist nicht lesbar. Dateirechte prüfen oder anderen Ordner wählen.",
+    "Alter Song-Ordner oder eine Audiodatei ist nicht lesbar. Dateirechte prüfen oder anderen Ordner wählen.",
+    "Zielordner ist nicht beschreibbar. Schreibrechte prüfen oder anderen Ordner wählen."
+  ],
+  en: [
+    "Choose another destination…", "Choose previous song folder…",
+    "Library folder cannot be read. Check file permissions or choose another folder.",
+    "Previous song folder or audio file cannot be read. Check file permissions or choose another folder.",
+    "Cannot write to destination. Check write permissions or choose another folder."
+  ],
+  es: [
+    "Elegir otro destino…", "Elegir carpeta anterior de canciones…",
+    "No se puede leer la carpeta de biblioteca. Revisa los permisos de archivo o elige otra carpeta.",
+    "No se puede leer la carpeta anterior o un audio. Revisa los permisos de archivo o elige otra carpeta.",
+    "No se puede escribir en el destino. Revisa los permisos de escritura o elige otra carpeta."
+  ],
+  fr: [
+    "Choisir une autre destination…", "Choisir l’ancien dossier des morceaux…",
+    "Impossible de lire le dossier de bibliothèque. Vérifiez les droits des fichiers ou choisissez un autre dossier.",
+    "Impossible de lire l’ancien dossier ou un fichier audio. Vérifiez les droits des fichiers ou choisissez un autre dossier.",
+    "Destination non inscriptible. Vérifiez les droits d’écriture ou choisissez un autre dossier."
+  ],
+  it: [
+    "Scegli un’altra destinazione…", "Scegli la vecchia cartella dei brani…",
+    "Impossibile leggere la cartella della libreria. Controlla i permessi dei file o scegli un’altra cartella.",
+    "Impossibile leggere la vecchia cartella o un audio. Controlla i permessi dei file o scegli un’altra cartella.",
+    "Destinazione non scrivibile. Controlla i permessi di scrittura o scegli un’altra cartella."
+  ],
+  pt: [
+    "Escolher outro destino…", "Escolher a pasta antiga das músicas…",
+    "Não foi possível ler a pasta da biblioteca. Verifica as permissões dos ficheiros ou escolhe outra pasta.",
+    "Não foi possível ler a pasta antiga ou um áudio. Verifica as permissões dos ficheiros ou escolhe outra pasta.",
+    "Não é possível escrever no destino. Verifica as permissões de escrita ou escolhe outra pasta."
+  ],
+  tr: [
+    "Başka hedef seç…", "Eski şarkı klasörünü seç…",
+    "Kitaplık klasörü okunamıyor. Dosya izinlerini denetleyin veya başka bir klasör seçin.",
+    "Eski şarkı klasörü veya ses dosyası okunamıyor. Dosya izinlerini denetleyin veya başka bir klasör seçin.",
+    "Hedefe yazılamıyor. Yazma izinlerini denetleyin veya başka bir klasör seçin."
+  ],
+  pl: [
+    "Wybierz inny folder docelowy…", "Wybierz stary folder utworów…",
+    "Nie można odczytać folderu biblioteki. Sprawdź uprawnienia plików lub wybierz inny folder.",
+    "Nie można odczytać starego folderu lub audio. Sprawdź uprawnienia plików lub wybierz inny folder.",
+    "Nie można zapisywać w folderze docelowym. Sprawdź uprawnienia do zapisu lub wybierz inny folder."
+  ],
+  ru: [
+    "Выбрать другую папку назначения…", "Выбрать прежнюю папку песен…",
+    "Не удалось прочитать папку библиотеки. Проверьте права доступа к файлам или выберите другую папку.",
+    "Не удалось прочитать прежнюю папку песен или аудиофайл. Проверьте права доступа к файлам или выберите другую папку.",
+    "Невозможно записать в папку назначения. Проверьте права на запись или выберите другую папку."
+  ],
+  uk: [
+    "Вибрати іншу папку призначення…", "Вибрати попередню папку пісень…",
+    "Не вдалося прочитати папку бібліотеки. Перевірте права доступу до файлів або виберіть іншу папку.",
+    "Не вдалося прочитати попередню папку пісень або аудіофайл. Перевірте права доступу до файлів або виберіть іншу папку.",
+    "Неможливо записати до папки призначення. Перевірте права на запис або виберіть іншу папку."
+  ],
+  ja: [
+    "別の保存先を選択…", "以前の曲フォルダーを選択…",
+    "ライブラリフォルダーを読み取れません。ファイルの権限を確認するか、別のフォルダーを選択してください。",
+    "以前の曲フォルダーまたは音声ファイルを読み取れません。ファイルの権限を確認するか、別のフォルダーを選択してください。",
+    "保存先に書き込めません。書き込み権限を確認するか、別のフォルダーを選択してください。"
+  ],
+  zh: [
+    "选择其他目标文件夹…", "选择旧歌曲文件夹…",
+    "无法读取曲库文件夹。请检查文件权限或选择其他文件夹。",
+    "无法读取旧歌曲文件夹或音频文件。请检查文件权限或选择其他文件夹。",
+    "无法写入目标文件夹。请检查写入权限或选择其他文件夹。"
+  ]
+};
+for (const [language, values] of Object.entries(plainImportMessages)) {
+  Object.assign(I18N[language as keyof typeof I18N], Object.fromEntries(plainImportKeys.map((key, index) => [`import_${key}_plain`, values[index]])));
+}
