@@ -3,6 +3,7 @@ import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./
 import { extractStyleTags } from "./style-tags";
 import { measureMelody, describeIdea, toWav } from "./melody";
 import { modelErrorText, settingsChanges } from "./expert-mode";
+import { createSettingsDialog } from "./settings-dialog";
 import { backend } from "./backend";
 import { generationModels, restoreSongModels, generationModelAllowed } from "./model-picker";
 import { t, LANG, setLang } from "./i18n.js";
@@ -170,6 +171,7 @@ function readForm() {
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (settingsDialog.blocksGeneration()) return;
   const btn = $("#genBtn");
   if (btn.disabled) return;
   if (!generationModelAllowed()) { alert(t("expert_mode_required")); return; }
@@ -413,6 +415,7 @@ function announceChanges(list) {
 // Alt+G generieren, Alt+R Aufnahme starten/beenden, Alt+B zur Bibliothek, Alt+N zum Formular
 document.addEventListener("keydown", (e) => {
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.code === "KeyG" && settingsDialog.blocksGeneration()) { e.preventDefault(); return; }
   const act = { KeyG: () => form.requestSubmit(), KeyR: () => recBtn.dispatchEvent(new MouseEvent("click", { detail: 0 })),
                 KeyB: () => $("#libHeading").focus(), KeyN: () => form.prompt.focus() }[e.code];
   if (act) { e.preventDefault(); act(); }
@@ -489,6 +492,7 @@ $("#library").addEventListener("click", async (e) => {
   if (!btn) return;
   const id = btn.closest(".song").dataset.id, s = songs.find((x) => x.id === id);
   const a = btn.dataset.a;
+  if ((a === "more" || a === "retry") && settingsDialog.isSaving()) return;
   if (a === "play") return play(s);
   if (a === "rename") { editingId = id; render(); const inp = $(`.t-edit[data-id="${id}"]`); inp?.focus(); inp?.select(); return; }
   if (a === "export" || a === "export-lyrics") { await exportSong(s, a === "export-lyrics").catch(e => alert(e.message)); return; }
@@ -720,7 +724,9 @@ async function checkHealth() {
 const dlg = $("#settingsDlg"), sf = $("#settingsForm");
 let settingsBefore;
 $("#btnSettings").onclick = async () => {
+  if (settingsDialog.blocksGeneration()) return;
   const s = await backend.settings();
+  if (settingsDialog.blocksGeneration()) return;
   settingsBefore = s;
   sf.expert_mode.checked = s.expert_mode;
   for (const k of ["timeout_minutes", "songs_dir", "lm_device", "export_format", "cpu_iteration_behavior"]) sf[k].value = s[k];
@@ -729,14 +735,15 @@ $("#btnSettings").onclick = async () => {
   $("#settingsIntelHint").hidden = !s.cpu_only;
   sf.songs_dir.placeholder = s.songs_dir_default;   // Standard als Platzhalter, leer lassen = Standard
   dlg.returnValue = "";
+  settingsDialog.resetStatus();
   dlg.showModal();
 };
 const saveSettings = async () => {
   const values = settingsChanges(settingsBefore, { expert_mode: sf.expert_mode.checked, cpu_iteration_behavior: sf.cpu_iteration_behavior.value, timeout_minutes: Number(sf.timeout_minutes.value), songs_dir: sf.songs_dir.value.trim(), lm_device: sf.lm_device.value, export_format: sf.export_format.value });
   if (!Object.keys(values).length) return;
-  try { await backend.saveSettings(values); }
-  catch (err) { alert(err.message === "mp3_failed" ? t("mp3_failed") : modelErrorText(err, t)); $("#btnSettings").click(); }
+  await backend.saveSettings(values);
 };
+const settingsDialog = createSettingsDialog(dlg, saveSettings, (err) => err instanceof Error && err.message === "mp3_failed" ? t("mp3_failed") : modelErrorText(err, t));
 document.addEventListener("open-settings", () => { $("#btnSettings").click(); });
 $("#settingsMoveLibrary").onclick = () => {
   dlg.addEventListener("close", () => requestAnimationFrame(() => document.dispatchEvent(new Event("move-library"))), { once: true });
@@ -767,7 +774,7 @@ $("#updCheck").onclick = async () => {
 $("#manageModels").onclick = () => { dlg.close("cancel"); document.dispatchEvent(new Event("manage-models")); };
 
 const loadExportFmt = () => backend.settings().then((s) => { exportFmt = s.export_format === "mp3" ? "mp3" : "wav"; }).catch(() => {});
-dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { await saveSettings(); await loadExportFmt(); render(); checkHealth(); } });
+dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { await loadExportFmt(); render(); checkHealth(); } });
 
 // Sprachumschalter (DE | EN)
 $("#uiLang").addEventListener("change", (e) => setLang(e.target.value));
