@@ -4,6 +4,8 @@ use tauri::{
     WebviewWindowBuilder,
 };
 
+mod exports;
+
 fn fixture(allowed: bool) -> (tempfile::TempDir, tauri::App<MockRuntime>) {
     let temporary = tempfile::tempdir().unwrap();
     let app = mock_app();
