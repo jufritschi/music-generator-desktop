@@ -2,8 +2,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { mountStudio } from "./dom-fixture";
 import type { GenerationFormPreferences } from "./types";
-const mocks = vi.hoisted(() => ({ generationFormPreferences: vi.fn(), saveGenerationFormPreferences: vi.fn() }));
-vi.mock("./backend", () => ({ backend: mocks }));
+const mocks = vi.hoisted(() => ({ invoke: vi.fn(), generationFormPreferences: vi.fn(), saveGenerationFormPreferences: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke, convertFileSrc: (path: string) => path }));
 import { createFormPreferences, createPreferenceWriter, DEFAULT_FORM_PREFERENCES } from "./form-preferences";
 import { I18N, LANGS } from "./i18n.js";
 import { formPreferenceTranslations } from "./form-preferences-i18n";
@@ -17,6 +17,11 @@ beforeEach(() => {
   vi.resetAllMocks(); mountStudio();
   mocks.generationFormPreferences.mockResolvedValue({ ...custom });
   mocks.saveGenerationFormPreferences.mockResolvedValue(undefined);
+  mocks.invoke.mockImplementation(async (command: string, args?: { values: GenerationFormPreferences }) => {
+    if (command === "get_generation_form_preferences") return mocks.generationFormPreferences();
+    if (command === "save_generation_form_preferences") return mocks.saveGenerationFormPreferences(args!.values);
+    throw new Error(`Unexpected command: ${command}`);
+  });
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -108,7 +113,7 @@ it("uses current model and device defaults on explicit reset without replacing s
   expect(mocks.saveGenerationFormPreferences).toHaveBeenLastCalledWith({ ...DEFAULT_FORM_PREFERENCES, inference_steps: 8 });
 });
 
-it.each([100, 120, 200])("preserves an existing %s-step preference without increasing it or rewriting storage on load", async steps => {
+it.each([80, 91, 100, 120, 200])("preserves an existing %s-step preference without increasing it or rewriting storage on load", async steps => {
   const stored = Object.freeze({ ...custom, inference_steps: steps });
   mocks.generationFormPreferences.mockResolvedValue(stored);
   const controller = createFormPreferences(form(), vi.fn()); await controller.ready;
@@ -117,4 +122,26 @@ it.each([100, 120, 200])("preserves an existing %s-step preference without incre
   await controller.flush(); expect(mocks.saveGenerationFormPreferences).not.toHaveBeenCalled();
   field("duration").value = "300"; controller.capture(); await controller.flush();
   expect(mocks.saveGenerationFormPreferences).toHaveBeenLastCalledWith({ ...stored, duration: 300 });
+});
+
+it.each([80, 91])("restores %s steps after reopening and uses 80 only on explicit GPU SFT reset", async steps => {
+  let stored = { ...custom, inference_steps: steps };
+  mocks.generationFormPreferences.mockImplementation(async () => ({ ...stored }));
+  mocks.saveGenerationFormPreferences.mockImplementation(async (values: GenerationFormPreferences) => { stored = { ...values }; });
+  const defaults = async () => ({ ...DEFAULT_FORM_PREFERENCES, inference_steps: 80 });
+  const first = createFormPreferences(form(), vi.fn(), defaults); await first.ready;
+  field("duration").value = "300"; field("duration").dispatchEvent(new Event("input", { bubbles: true }));
+  await first.flush();
+
+  mountStudio();
+  const reopened = createFormPreferences(form(), vi.fn(), defaults); await reopened.ready;
+  expect(field("inference_steps").value).toBe(String(steps));
+  expect(field("duration").value).toBe("300");
+  document.querySelector<HTMLButtonElement>("#resetGenPreferences")!.click();
+  await settle(); await reopened.flush();
+  expect(field("inference_steps").value).toBe("80");
+  mountStudio();
+  const reset = createFormPreferences(form(), vi.fn(), defaults); await reset.ready;
+  expect(field("inference_steps").value).toBe("80");
+  expect(field("duration").value).toBe("90");
 });

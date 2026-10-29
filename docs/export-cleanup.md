@@ -42,6 +42,7 @@ Auch ein symbolisch verknüpfter Exportordner wird nicht durchsucht.
 
 Die Bereinigung läuft weder beim erneuten Öffnen der Datenbank noch bei späteren
 Exporten oder erneuten Startanfragen mit bereits vorhandenem Anwendungszustand.
+Das gilt auch für einen manuellen Start-Neuversuch mit neuer Versuchsnummer.
 Dadurch bleiben Arbeitsdateien paralleler Exporte erhalten.
 
 Unter Windows werden Löschfehler wegen Zugriff, Dateisperren oder eines noch nicht
@@ -65,8 +66,9 @@ Die Starttests prüfen Altlasten, geschützte Dateien und Verknüpfungen sowie d
 Erhalt aktiver Arbeitsverzeichnisse bei einer erneuten Startanfrage. Vorhandene
 Frontendtests sichern den Dialogabbruch und die übersetzten MP3-Fehler ab.
 
-Lokale Prüfung auf macOS: 208 Rust-Tests einschließlich neun neuer
-Prozess-/Exportfälle, 348 Frontendtests und 32 Desktop-Scripttests bestanden.
+Lokale Prüfung auf macOS nach Integration des Hauptbranches am 29. Oktober 2026:
+226 Rust-Tests einschließlich neun neuer Prozess-/Exportfälle, 391 Frontendtests
+und 32 Desktop-Scripttests bestanden.
 Typechecking, Frontend-Build, ESLint, Rustfmt und Clippy ohne Warnungen waren
 erfolgreich. Die beiden
 zentralen Regressionen wurden vor ihrer jeweiligen Korrektur rot nachgewiesen.
