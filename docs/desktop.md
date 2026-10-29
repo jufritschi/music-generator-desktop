@@ -78,7 +78,7 @@ Audio, lyrics and ZIP save dialogs share the last confirmed export directory acr
 
 Songs can be 10 seconds to 10 minutes long. Above five minutes the form shows a localized time/memory warning. The language model may occasionally return extra audio codes; the outgoing synthesis payload is capped at the requested duration × 5 and at 3000 codes (600 seconds). This does not rewrite saved song parameters. Synthesis failures inspect only new lines in the combined stdout/stderr engine log; memory exhaustion and the model's maximum-length error get specific explanations. Earlier jobs' memory errors are ignored. Ten-minute generation remains untested on Intel Macs and 8 GiB machines; start with a short song on those systems.
 
-Since 0.2.7, new generations normalize to the actual audio peak instead of the engine's percentile clipping. Rust sends `peak_clip: 0` to both generation stages and reapplies it after LM enrichment. Existing library audio and stored parameters are retained. This addresses that normalization step; it is not a claim that every possible audible distortion has been eliminated.
+New generations normalize to the actual audio peak instead of the engine's percentile clipping. Rust sends `peak_clip: 0` to both generation stages and reapplies it after LM enrichment. Existing library audio and stored parameters are retained. This addresses that normalization step; it is not a claim that every possible audible distortion has been eliminated.
 
 - macOS: `~/Library/Containers/de.alphatester.music-generator/Data/Library/Application Support/de.alphatester.music-generator/`
 - Windows: `%LOCALAPPDATA%\de.alphatester.music-generator\`
@@ -102,7 +102,7 @@ Closing while work is pending asks for confirmation. Running jobs and pending jo
 
 If an engine job exceeds its time limit, the app cancels that job and reports the phase and elapsed minutes. For long songs, raise Timeout in Settings (gear); the existing default remains 30 minutes per engine operation. The song-list summary gives this guidance in all twelve languages, including for older stored German/English timeout messages. Retry retains the song's saved generation parameters; updating the app does not change them or overwrite your timeout setting.
 
-Since 0.2.6, the creation-time display measures each attempt from queue claim to completion, excluding waiting behind earlier variants. An additive nullable `started_at` column stores the start; old completed songs retain their previous display using the existing creation timestamp. Retry and restart recovery record a fresh start when the job is claimed. Existing generation parameters and timestamps are preserved during migration. Import supports both schema versions without changing the original library.
+The creation-time display measures each attempt from queue claim to completion, excluding waiting behind earlier variants. An additive nullable `started_at` column stores the start; old completed songs retain their previous display using the existing creation timestamp. Retry and restart recovery record a fresh start when the job is claimed. Existing generation parameters and timestamps are preserved during migration. Import supports both schema versions without changing the original library.
 
 ## Rust architecture
 
