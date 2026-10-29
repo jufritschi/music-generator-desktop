@@ -1,3 +1,4 @@
+import { parseBatchPrompts, buildBatchRequests, MAX_BATCH_PROMPTS } from "./batch-prompts";
 import { startGeneration, loadGenerationPolicy, updateCpuWarnings, updateObservedSynthesis, generationPolicyVersion } from "./generation-policy";
 import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
 import { extractStyleTags } from "./style-tags";
@@ -180,15 +181,33 @@ form.addEventListener("submit", async (e) => {
   const btn = $("#genBtn");
   if (btn.disabled) return;
   if (!generationModelAllowed()) { alert(t("expert_mode_required")); return; }
-  if (!form.prompt.value.trim()) setPrompt(randomPrompt(form.instrumental.checked), true);
+  if (!$("#batchToggle").checked && !form.prompt.value.trim()) setPrompt(randomPrompt(form.instrumental.checked), true);
   btn.classList.remove("fired"); void btn.offsetWidth; btn.classList.add("fired");   // Animation auch bei Enter/Alt+G
   btn.disabled = true;
   try {
-    const r = await startGeneration(readForm(), undefined, () => {
+    const applyReduced = () => {
       form.inference_steps.value = "30";
       form.inference_steps.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    if (r) announce(t("an_queued", r.ids.length));
+    };
+    const base = readForm();
+    let queued = 0;
+    if ($("#batchToggle").checked) {
+      const { prompts, truncated } = parseBatchPrompts(form.prompt.value);
+      if (!prompts.length) { alert(t("batch_empty")); btn.disabled = false; return; }
+      if (truncated) alert(t("batch_truncated", MAX_BATCH_PROMPTS));
+      const groupId = crypto.randomUUID();
+      for (let index = 0; index < prompts.length; index++) {
+        // Formular bei jedem Schritt neu lesen: Nach „Mit 30 starten“ bleiben die restlichen Songs bei 30, ohne erneute Rückfrage.
+        const request = buildBatchRequests({ ...readForm(), prompt: "" }, prompts, groupId)[index];
+        const r = await startGeneration(request, undefined, applyReduced);
+        if (!r) break;   // abgebrochen, z. B. bei der CPU-Rückfrage: restliche Prompts nicht einreihen
+        queued += r.ids.length;
+      }
+    } else {
+      const r = await startGeneration(base, undefined, applyReduced);
+      queued = r ? r.ids.length : 0;
+    }
+    if (queued) announce(t("an_queued", queued));
     refresh();
   } catch (err) { alert(t("error") + ": " + modelErrorText(err, t)); }
   setTimeout(() => { btn.disabled = false; }, 600);
