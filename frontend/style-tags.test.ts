@@ -12,6 +12,10 @@ describe("style chips", () => {
     expect(STYLE_TAGS).toContain("choir harmonies");
   });
 
+  it("offers common orchestral and folk instruments", () => {
+    for (const name of ["strings", "brass", "accordion", "violin", "cello"]) expect(STYLE_TAGS).toContain(name);
+  });
+
   it("has no duplicate chips", () => {
     expect(new Set(STYLE_TAGS).size).toBe(STYLE_TAGS.length);
   });

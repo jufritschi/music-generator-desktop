@@ -6,7 +6,7 @@ const STYLE_GROUPS = {
     "country", "80s pop", "eurotrash", "90s dance", "chillout"],
   vocals: ["female vocals", "male vocals"],
   vocalStyle: ["breathy vocals", "powerful vocals", "soft whisper", "choir harmonies", "clear diction", "raspy vocals"],
-  instr: ["piano", "guitar"],
+  instr: ["piano", "guitar", "bass guitar", "strings", "violin", "cello", "brass", "trumpet", "saxophone", "flute", "harp", "accordion", "synthesizer", "choir"],
   sound: ["warm analog synths", "clean studio production", "spacious reverb", "soft acoustic drums", "punchy drums", "vintage tape warmth", "bright and crisp", "lo-fi texture"],
   mood: ["upbeat", "melancholic", "dreamy"],
 };
