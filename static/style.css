@@ -397,3 +397,5 @@ button.chip { background: none; font: inherit; font-size: 12px; }
 
 .chip-group{margin-top:.5em}
 .chip-group-title{display:block;font-size:.8em;opacity:.7;margin-bottom:.25em;text-transform:uppercase;letter-spacing:.04em}
+
+.field.title-field{margin-bottom:24px}

@@ -69,7 +69,7 @@
       <button type="button" class="sek" id="expertOpenSettings" data-i18n="expert_settings"></button>
     </div>
     <form id="genForm">
-      <div class="field"><div class="lblrow"><span class="lbl" id="lblTitle" title="Nur zum Wiederfinden, hat keinen Einfluss auf die Musik." data-i18n-title="title_tip" data-i18n="title">Titel</span>
+      <div class="field title-field"><div class="lblrow"><span class="lbl" id="lblTitle" title="Nur zum Wiederfinden, hat keinen Einfluss auf die Musik." data-i18n-title="title_tip" data-i18n="title">Titel</span>
         <button type="button" id="titleDice" class="dice" title="Zufälligen Titel würfeln" aria-label="Zufälligen Titel würfeln" data-i18n-title="title_dice" data-i18n-aria="title_dice"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></div>
         <input name="title" aria-labelledby="lblTitle" placeholder="optional" data-i18n-ph="title_ph">
       </div>
@@ -80,8 +80,8 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg>
         </button></div>
         <textarea name="prompt" aria-labelledby="lblPrompt" rows="2" placeholder="Leer lassen: Beim Generieren wird ein zufälliger Prompt eingesetzt und hier angezeigt." data-i18n-ph="prompt_ph"></textarea>
-        <select id="promptHistory" class="prompt-history" aria-label="Frühere Prompts" data-i18n-aria="prompt_history" hidden></select>
-        <label class="batch-toggle"><input type="checkbox" id="batchToggle"><span data-i18n="batch_toggle">Stapel: jede Zeile ist ein eigener Song</span></label>
+        <select id="promptHistory" class="prompt-history" title="Frühere Prompts aus deiner Bibliothek. Ein Klick übernimmt sie ins Feld." data-i18n-title="tip_history" aria-label="Frühere Prompts" data-i18n-aria="prompt_history" hidden></select>
+        <label class="batch-toggle" title="Jede Zeile im Prompt-Feld wird ein eigener Song." data-i18n-title="tip_batch"><input type="checkbox" id="batchToggle"><span data-i18n="batch_toggle">Stapel: jede Zeile ist ein eigener Song</span></label>
       </div>
 
       <div class="field"><div class="lblrow"><span class="lbl" id="lblStyle" title="Stilrichtung: Genre, Instrumente, Sound. Der Würfel mischt einen Stil, unter „Stile“ liegen Karten zum Anklicken." data-i18n-title="style_tip" data-i18n="style">Stil</span>
@@ -97,7 +97,7 @@
       <input type="checkbox" name="instrumental" checked hidden>
       <input type="checkbox" name="keep_caption" checked hidden>
 
-      <div class="field"><span class="lbl" data-i18n="length">Länge</span>
+      <div class="field"><span class="lbl" title="Wie lang der Song werden soll: 10 Sekunden bis 10 Minuten." data-i18n-title="tip_length" data-i18n="length">Länge</span>
         <div class="slider" data-fmt="dur">
           <div class="fill"></div><div class="knob"><span></span></div>
           <input name="duration" type="range" min="10" max="600" step="5" value="90" aria-label="Länge" title="0:10 bis 10:00" data-i18n-aria="length" data-i18n-title="length_tip">
@@ -113,17 +113,17 @@
       </div>
 
       <details id="lyricsBox" title="Leer lassen: Das Modell schreibt eigene Lyrics. Die Sprache wählst du darunter (Standard: Englisch)." data-i18n-title="lyrics_tip">
-        <summary><span><span data-i18n="lyrics">Lyrics</span> <span id="lyricsHint" class="sumhint"></span></span>
+        <summary title="Eigener Text mit Abschnitten wie [verse] und [chorus]. Leer = das Modell schreibt Lyrics. Instrumental = kein Gesang." data-i18n-title="tip_lyrics"><span><span data-i18n="lyrics">Lyrics</span> <span id="lyricsHint" class="sumhint"></span></span>
           <span class="dice-wrap"><button type="button" id="lyricsDice" class="dice" title="Lyrics automatisch schreiben lassen (erst beim Generieren)" aria-label="Lyrics automatisch schreiben lassen" data-i18n-title="lyrics_dice" data-i18n-aria="lyrics_dice"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></span>
         </summary>
-        <div class="field lang"><span class="lbl" data-i18n="language">Sprache</span>
+        <div class="field lang"><span class="lbl" title="Sprache der Lyrics. Bestimmt die Aussprache beim Gesang." data-i18n-title="tip_language" data-i18n="language">Sprache</span>
           <select name="vocal_language" aria-label="Sprache der Lyrics" data-i18n-aria="language_aria">
             <option value="en" selected data-i18n="en">Englisch</option><option value="de" data-i18n="de">Deutsch</option><option value="fr" data-i18n="fr">Französisch</option>
             <option value="es" data-i18n="es">Spanisch</option><option value="it" data-i18n="it">Italienisch</option><option value="pt" data-i18n="pt">Portugiesisch</option>
             <option value="ja" data-i18n="ja">Japanisch</option><option value="ko" data-i18n="ko">Koreanisch</option><option value="zh" data-i18n="zh">Chinesisch</option><option value="ru" data-i18n="ru">Russisch</option>
           </select></div>
         <textarea name="lyrics" rows="7" placeholder="[verse]&#10;…&#10;&#10;[chorus]&#10;…"></textarea>
-        <select id="structureTemplate" class="prompt-history" aria-label="Songaufbau" data-i18n-aria="structure_aria">
+        <select id="structureTemplate" class="prompt-history" title="Schreibt eine Abschnittsfolge ins Lyrics-Feld, die du mit Text füllst." data-i18n-title="tip_structure" aria-label="Songaufbau" data-i18n-aria="structure_aria">
           <option value="" data-i18n="structure_template">Songaufbau vorlegen …</option>
           <option value="pop" data-i18n="structure_pop">Pop</option><option value="ballad" data-i18n="structure_ballad">Ballade</option><option value="short" data-i18n="structure_short">Kurzsong</option>
         </select>
@@ -131,7 +131,7 @@
       </details>
 
       <details id="advBox">
-        <summary data-i18n="advanced">Erweitert</summary>
+        <summary title="Feineinstellungen für Fortgeschrittene: Rechenschritte, Varianz, Tonart, Takt, Seed." data-i18n-title="tip_advanced" data-i18n="advanced">Erweitert</summary>
         <div class="field adv"><span class="lbl" title="Diffusionsschritte der Klangerzeugung. Mehr = langsamer, CPU-Empfehlung: höchstens 30." data-i18n-title="iterations_tip" data-i18n="iterations">Iterationen</span>
           <div class="slider" data-fmt="int">
             <div class="fill"></div><div class="knob"><span></span></div>
@@ -145,22 +145,36 @@
           </div>
         </div>
         <div class="grid">
-          <label class="field"><span class="lbl" data-i18n="key">Tonart</span>
+          <label class="field"><span class="lbl" title="Grundton und Dur (hell) oder Moll (dunkel). Auto = das Modell wählt." data-i18n-title="tip_key" data-i18n="key">Tonart</span>
             <select name="keyscale">
             <option value="">Auto</option>
             <option value="C major">C major</option>
-            <option value="G major">G major</option>
+            <option value="C# major">C# major</option>
             <option value="D major">D major</option>
-            <option value="A major">A major</option>
+            <option value="Eb major">Eb major</option>
             <option value="E major">E major</option>
             <option value="F major">F major</option>
-            <option value="A minor">A minor</option>
-            <option value="E minor">E minor</option>
-            <option value="D minor">D minor</option>
+            <option value="F# major">F# major</option>
+            <option value="G major">G major</option>
+            <option value="Ab major">Ab major</option>
+            <option value="A major">A major</option>
+            <option value="Bb major">Bb major</option>
+            <option value="B major">B major</option>
             <option value="C minor">C minor</option>
+            <option value="C# minor">C# minor</option>
+            <option value="D minor">D minor</option>
+            <option value="Eb minor">Eb minor</option>
+            <option value="E minor">E minor</option>
+            <option value="F minor">F minor</option>
+            <option value="F# minor">F# minor</option>
+            <option value="G minor">G minor</option>
+            <option value="Ab minor">Ab minor</option>
+            <option value="A minor">A minor</option>
+            <option value="Bb minor">Bb minor</option>
+            <option value="B minor">B minor</option>
             </select>
           </label>
-          <label class="field"><span class="lbl" data-i18n="timesig">Takt</span>
+          <label class="field"><span class="lbl" title="Schläge pro Takt, z. B. 4/4 für Pop. Auto = das Modell wählt." data-i18n-title="tip_timesig" data-i18n="timesig">Takt</span>
             <select name="timesignature">
             <option value="">Auto</option>
             <option value="4" data-i18n="ts_default">4/4 (Standard)</option>
@@ -181,11 +195,11 @@
               <div class="fill"></div><div class="knob"><span></span></div>
               <input name="variants" type="range" min="1" max="10" step="1" value="2" aria-label="Versionen" data-i18n-aria="versions">
             </div>
-            <button type="submit" id="genBtn" class="aktion big">2× GENERIEREN</button>
+            <button type="submit" id="genBtn" class="aktion big" title="Startet die Erzeugung. Bei mehreren Versionen entsteht pro Version ein eigener Song." data-i18n-title="tip_generate">2× GENERIEREN</button>
           </div>
         </div>
         <div class="form-preferences-actions">
-          <button type="button" id="resetGenPreferences" class="sek" data-i18n="form_preferences_reset">Grundeinstellungen zurücksetzen</button>
+          <button type="button" id="resetGenPreferences" class="sek" title="Setzt Länge, Tempo, Iterationen, Varianz und Versionen auf die Grundwerte zurück. Titel, Prompt, Stil und Lyrics bleiben." data-i18n-title="tip_reset" data-i18n="form_preferences_reset">Grundeinstellungen zurücksetzen</button>
           <span id="genPreferencesError" class="small" role="status" hidden></span>
         </div>
       </div>
