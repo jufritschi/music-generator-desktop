@@ -330,6 +330,11 @@ fn authorize_songs(app: &AppHandle, songs: &std::path::Path) -> Result<()> {
 }
 
 #[tauri::command]
+pub fn save_cover_source(state: Desktop<'_>, data: Vec<u8>, filename: String) -> Result<String> {
+    crate::covers::save(&state.db.root, &data, &filename)
+}
+
+#[tauri::command]
 pub async fn analyze(
     state: Desktop<'_>,
     data: Vec<u8>,

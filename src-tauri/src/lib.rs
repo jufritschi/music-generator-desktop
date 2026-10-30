@@ -5,6 +5,7 @@ pub mod audio_import;
 pub mod catalog;
 mod commands;
 pub mod configuration;
+pub mod covers;
 pub mod db;
 pub mod download;
 pub mod engine;
@@ -128,6 +129,7 @@ pub fn run() {
             commands::generation_policy,
             commands::save_generation_form_preferences,
             commands::analyze,
+            commands::save_cover_source,
             commands::health,
             commands::export_file,
             commands::check_update,

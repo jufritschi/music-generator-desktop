@@ -96,17 +96,32 @@ pub async fn worker<R: Runtime>(state: Arc<AppState>, app: AppHandle<R>) {
                 .await?;
                 let _ = app.emit("models-changed", ());
             }
+            let source = if params["task_type"] == "cover-nofsq" {
+                let name = params["source_audio"].as_str().unwrap_or("");
+                Some(crate::covers::read(&state.db.root, name)?)
+            } else {
+                None
+            };
             let (audio, ext, mut meta) = {
                 let client = state.start_engine(&operation, &settings).await?;
-                client
-                    .generate(
-                        &params,
-                        &selection.language,
-                        &selection.synthesis,
-                        &cancel,
-                        progress,
-                    )
-                    .await?
+                match source {
+                    Some(bytes) => {
+                        client
+                            .generate_cover(&params, bytes, &selection.synthesis, &cancel, progress)
+                            .await?
+                    }
+                    None => {
+                        client
+                            .generate(
+                                &params,
+                                &selection.language,
+                                &selection.synthesis,
+                                &cancel,
+                                progress,
+                            )
+                            .await?
+                    }
+                }
             };
             if state
                 .db

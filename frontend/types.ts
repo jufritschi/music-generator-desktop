@@ -20,6 +20,7 @@ export interface Generation {
   keep_caption?: boolean; title?: string; duration?: number; bpm?: number; keyscale?: string;
   timesignature?: string; vocal_language?: string; seed?: number; variants?: number;
   inference_steps?: number; lm_temperature?: number; group_id?: string; folder_id?: string | null;
+  task_type?: string; cover_strength?: number; source_audio?: string;
 }
 export interface Song {
   id: string; group_id: string; created_at: string; finished_at: string | null;

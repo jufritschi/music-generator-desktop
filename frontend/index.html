@@ -144,6 +144,22 @@
             <input name="lm_temperature" type="range" min="0.3" max="1.5" step="0.05" value="1.2" aria-label="Varianz" data-i18n-aria="variance">
           </div>
         </div>
+        <div class="field cover-field">
+          <span class="lbl" title="Normal: Der Song entsteht aus dem Prompt. Cover: Ihr eigener Song dient als Vorlage, Melodie und Struktur bleiben stärker erhalten." data-i18n-title="tip_mode" data-i18n="mode">Modus</span>
+          <select name="task_type" aria-label="Modus" data-i18n-aria="mode">
+            <option value="text2music" data-i18n="mode_normal">Normal</option>
+            <option value="cover-nofsq" data-i18n="mode_cover">Cover: eigener Song als Vorlage</option>
+          </select>
+          <div class="cover-source" id="coverSourceBox" hidden>
+            <button type="button" id="coverPick" class="sek" title="Audiodatei als Vorlage wählen (WAV, MP3, FLAC, M4A, OGG)" data-i18n-title="tip_cover_pick" data-i18n="cover_pick">Song wählen …</button>
+            <span id="coverName" class="small" data-i18n="cover_none">Kein Song gewählt</span>
+          </div>
+          <label class="field cover-strength-field" id="coverStrengthBox" hidden>
+            <span class="lbl" title="0 = freie Neuinterpretation, 1 = nah am Original. Für Cover empfohlen: etwa 0,3." data-i18n-title="tip_cover_strength" data-i18n="cover_strength">Stärke der Vorlage</span>
+            <input type="range" name="cover_strength" min="0" max="1" step="0.05" value="0.3" aria-label="Stärke der Vorlage" data-i18n-aria="cover_strength">
+            <output id="coverStrengthOut">0.30</output>
+          </label>
+        </div>
         <div class="grid">
           <label class="field"><span class="lbl" title="Grundton und Dur (hell) oder Moll (dunkel). Auto = das Modell wählt." data-i18n-title="tip_key" data-i18n="key">Tonart</span>
             <select name="keyscale">

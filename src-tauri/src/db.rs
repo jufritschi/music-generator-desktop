@@ -213,6 +213,17 @@ impl Database {
         {
             return Err(message("Invalid generation parameters"));
         }
+        let cover = req.task_type == "cover-nofsq";
+        if !(cover || req.task_type == "text2music") {
+            return Err(message("Invalid generation parameters"));
+        }
+        if cover
+            && (!req.cover_strength.is_finite()
+                || !(0.0..=1.0).contains(&req.cover_strength)
+                || !crate::covers::valid_name(&req.source_audio))
+        {
+            return Err(message("Choose a source song for the cover"));
+        }
         let caption = [
             req.style.trim().trim_matches(','),
             req.prompt.trim().trim_matches(','),

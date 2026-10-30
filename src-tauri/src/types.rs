@@ -85,6 +85,12 @@ pub struct GenerateRequest {
     pub lm_temperature: Option<f64>,
     pub group_id: Option<String>,
     pub folder_id: Option<String>,
+    /// "text2music" (normal) or "cover-nofsq" (own song as template).
+    pub task_type: String,
+    /// 0 = loose reinterpretation, 1 = close to the original.
+    pub cover_strength: f64,
+    /// Stored file name inside the covers folder (cover mode only).
+    pub source_audio: String,
 }
 
 impl Default for GenerateRequest {
@@ -109,6 +115,9 @@ impl Default for GenerateRequest {
             lm_temperature: None,
             group_id: None,
             folder_id: None,
+            task_type: "text2music".into(),
+            cover_strength: 0.3,
+            source_audio: String::new(),
         }
     }
 }

@@ -9,6 +9,7 @@ const audioUrl = (song: Song): Song => ({ ...song, url: song.path ? convertFileS
 
 export const backend = {
   dialogDirectory: (current: string | null, remembered: string | null, exporting: boolean) => command<string>("dialog_directory", { current, remembered, exporting }),
+  saveCoverSource: (data: number[], filename: string) => command<string>("save_cover_source", { data, filename }),
   pickAudioFile: (directory: string, title: string, filterName: string) => command<{ name: string; directory: string; data: number[] } | null>("pick_audio_file", { directory, title, filterName }),
   rememberFolder: (path: string) => command<void>("remember_folder", { path }),
   bootstrap: (attempt: number) => command<Bootstrap>("bootstrap", { attempt }),

@@ -1,3 +1,4 @@
+import { dialogDirectory } from "./path-dialogs";
 import { SONG_STRUCTURES, structureText } from "./song-structure";
 import { promptHistory } from "./prompt-history";
 import { parseBatchPrompts, buildBatchRequests, MAX_BATCH_PROMPTS } from "./batch-prompts";
@@ -217,6 +218,25 @@ form.lyrics.addEventListener("focus", () => { if (form.instrumental.checked) { f
 form.lyrics.addEventListener("input", syncLyrics);
 syncLyrics();
 
+// Cover-Modus: eigener Song als Vorlage. Der gespeicherte Dateiname kommt von der App.
+let coverSource = "";
+function syncCoverMode() {
+  const cover = form.task_type.value === "cover-nofsq";
+  $("#coverSourceBox").hidden = !cover;
+  $("#coverStrengthBox").hidden = !cover;
+}
+form.task_type.addEventListener("change", syncCoverMode);
+form.cover_strength.addEventListener("input", () => { $("#coverStrengthOut").textContent = Number(form.cover_strength.value).toFixed(2); });
+$("#coverPick").addEventListener("click", async () => {
+  try {
+    const chosen = await backend.pickAudioFile(await dialogDirectory("audio_import"), t("dialog_audio_import"), t("dialog_audio_filter"));
+    if (!chosen) return;
+    coverSource = await backend.saveCoverSource(chosen.data, chosen.name);
+    $("#coverName").textContent = chosen.name;
+  } catch (err) { alert(t("error") + ": " + modelErrorText(err, t)); }
+});
+syncCoverMode();
+
 function readForm() {
   const d = Object.fromEntries(new FormData(form));
   const num = (k, def) => (d[k] === "" || d[k] == null ? def : Number(d[k]));
@@ -225,7 +245,7 @@ function readForm() {
     folder_id: curFolder && curFolder !== "none" ? curFolder : null,
     title: d.title || "", prompt: d.prompt || "", style: d.style || "", lyrics: form.instrumental.checked ? "" : d.lyrics || "", instrumental: form.instrumental.checked, keep_caption: form.keep_caption.checked,
     duration: Number(form.duration.value), bpm: Number(form.bpm.value) <= Number(form.bpm.min) ? 0 : Number(form.bpm.value), keyscale: d.keyscale || "", timesignature: d.timesignature || "", vocal_language: form.instrumental.checked ? "" : d.vocal_language || "en",
-    seed: num("seed", -1), variants: num("variants", 1),
+    seed: num("seed", -1), variants: num("variants", 1), task_type: d.task_type === "cover-nofsq" ? "cover-nofsq" : "text2music", cover_strength: Number(form.cover_strength.value), source_audio: d.task_type === "cover-nofsq" ? coverSource : "",
     inference_steps: Number(form.inference_steps.value), lm_temperature: Number(form.lm_temperature.value),
   };
 }
@@ -236,6 +256,7 @@ form.addEventListener("submit", async (e) => {
   const btn = $("#genBtn");
   if (btn.disabled) return;
   if (!generationModelAllowed()) { alert(t("expert_mode_required")); return; }
+  if (form.task_type.value === "cover-nofsq" && !coverSource) { alert(t("cover_need_song")); return; }
   if (!$("#batchToggle").checked && !form.prompt.value.trim()) setPrompt(randomPrompt(form.instrumental.checked), true);
   btn.classList.remove("fired"); void btn.offsetWidth; btn.classList.add("fired");   // Animation auch bei Enter/Alt+G
   btn.disabled = true;

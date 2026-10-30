@@ -399,3 +399,7 @@ button.chip { background: none; font: inherit; font-size: 12px; }
 .chip-group-title{display:block;font-size:.8em;opacity:.7;margin-bottom:.25em;text-transform:uppercase;letter-spacing:.04em}
 
 .field.title-field{margin-bottom:24px}
+
+.cover-source{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.cover-source[hidden],.cover-strength-field[hidden]{display:none}
+.cover-strength-field{margin-top:8px}

@@ -201,3 +201,63 @@ fn code_count(meta: &Value) -> usize {
         .filter(|code| !code.trim().is_empty())
         .count()
 }
+
+impl EngineClient {
+    /// Cover mode: the source song is sent with the request to /synth. No language model runs.
+    pub async fn generate_cover(
+        &self,
+        params: &Value,
+        source: Vec<u8>,
+        dit: &str,
+        cancel: &CancellationToken,
+        progress: impl Fn(Progress),
+    ) -> Result<(Vec<u8>, String, Value)> {
+        let steps =
+            crate::generation_limits::effective_steps(params["inference_steps"].as_u64(), dit);
+        let mut request = json!({
+            "task_type": "cover-nofsq",
+            "caption": params["caption"],
+            "lyrics": params["lyrics"],
+            "audio_cover_strength": params["cover_strength"],
+            "inference_steps": steps,
+            "synth_model": dit,
+            "output_format": "wav16",
+            "peak_clip": 0,
+        });
+        for field in ["bpm", "keyscale", "timesignature", "vocal_language", "seed"] {
+            if let Some(value) = params
+                .get(field)
+                .filter(|v| !v.is_null() && v.as_str() != Some(""))
+            {
+                request[field] = value.clone();
+            }
+        }
+        let name = params["source_audio"]
+            .as_str()
+            .unwrap_or("source.wav")
+            .to_string();
+        let form = reqwest::multipart::Form::new()
+            .part(
+                "audio",
+                reqwest::multipart::Part::bytes(source).file_name(name),
+            )
+            .text("request", request.to_string());
+        let (ctype, body) = self
+            .operation(
+                &self.synth,
+                "synth",
+                self.http
+                    .post(format!("{}/synth", self.synth))
+                    .multipart(form),
+                cancel,
+                progress,
+            )
+            .await?;
+        let (audio, extension, metadata) = extract_generation(&ctype, &body)?;
+        let mut enriched = request;
+        record_iteration_evidence(steps, metadata.as_ref(), &mut enriched)?;
+        let seconds = crate::audio_facts::duration(&audio)?;
+        crate::audio_facts::record_duration(seconds, params, &mut enriched);
+        Ok((audio, extension, enriched))
+    }
+}
