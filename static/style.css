@@ -1,7 +1,7 @@
 /* Design nach YT SHORT CREATOR/DESIGN.md
    Gold = läuft/erledigt · Blau = Klick/Fokus · Rot = Fehler */
 :root {
-  --bg: #0c0e12; --panel: #1a1d24; --border: #2a2e38; --text: #eef0f4; --muted: #8a90a0;
+  --bg: #0c0e12; --panel: #1a1d24; --border: #2a2e38; --text: #eef0f4; --muted: #8a90a0; --label: #c0392b;
   --accent: #6d8cff; --accent2: #d1a75c; --error: #ff6b6b;
   --gold-tint: rgba(209, 167, 92, .08); --gold-tint2: rgba(209, 167, 92, .1);
   --logo-text: #ddc8aa;
@@ -102,11 +102,11 @@ body {
 @media (max-width: 700px) { .top { --h: 48px; gap: 10px; flex-wrap: wrap; } }
 
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; min-width: 0; }
-.col-title { margin: 0; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.col-title { margin: 0; font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: .06em; text-transform: uppercase; }
 
 /* Formular */
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.lbl { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.lbl { font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: .06em; text-transform: uppercase; }
 .lbl[title] { cursor: help; }
 input, textarea, select {
   font: inherit; color: var(--text); background: var(--bg);
