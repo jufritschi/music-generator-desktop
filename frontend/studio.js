@@ -1,7 +1,7 @@
 import { promptHistory } from "./prompt-history";
 import { parseBatchPrompts, buildBatchRequests, MAX_BATCH_PROMPTS } from "./batch-prompts";
 import { startGeneration, loadGenerationPolicy, updateCpuWarnings, updateObservedSynthesis, generationPolicyVersion } from "./generation-policy";
-import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
+import { STYLE_GROUPS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
 import { extractStyleTags } from "./style-tags";
 import { measureMelody, describeIdea, toWav } from "./melody";
 import { modelErrorText } from "./expert-mode";
@@ -77,11 +77,34 @@ function syncStyleChips() {
     c.classList.toggle("on", on); c.setAttribute("aria-pressed", on);
   });
 }
-addChips($("#tagChips"), STYLE_TAGS, (tag) => {
+// Stil-Karten nach Gruppen mit Überschrift (Genre, Gesang, Instrumente, Klang, Stimmung)
+const STYLE_GROUP_ORDER = ["genre", "vocals", "instr", "sound", "mood"];
+function renderStyleGroups() {
+  const box = $("#tagChips");
+  box.replaceChildren();
+  for (const key of STYLE_GROUP_ORDER) {
+    const group = document.createElement("div");
+    group.className = "chip-group";
+    const title = document.createElement("span");
+    title.className = "chip-group-title";
+    title.textContent = t("style_group_" + key);
+    const chips = document.createElement("div");
+    chips.className = "chips";
+    group.append(title, chips);
+    box.append(group);
+    addChips(chips, STYLE_GROUPS[key], onStyleChip);
+  }
+  syncStyleChips();
+}
+function onStyleChip(tag) {
   const parts = styleParts(), rest = parts.filter((x) => x.toLowerCase() !== tag.toLowerCase());
   form.style.value = (rest.length < parts.length ? rest : [...parts, tag]).join(", ");
   syncStyleChips();
-});
+}
+renderStyleGroups();
+document.addEventListener("langchange", renderStyleGroups);
+
+  const parts = styleParts(), rest = parts.filter((x) => x.toLowerCase() !== tag.toLowerCase());
 form.style.addEventListener("input", syncStyleChips);
 addChips($("#sectionChips"), SECTIONS, (t) => {
   if (t === "[instrumental]") { form.instrumental.checked = true; syncLyrics(); return; }   // zurück zu ohne Gesang

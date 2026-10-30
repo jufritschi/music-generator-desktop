@@ -84,4 +84,4 @@ const randomStyle = (instrumental: boolean) => {
 };
 const randomTitle = () => `${pick(TITLE.adj)} ${pick(TITLE.noun)}`;
 
-export { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle };
+export { STYLE_TAGS, STYLE_GROUPS, SECTIONS, randomPrompt, randomStyle, randomTitle };
