@@ -392,3 +392,5 @@ button.chip { background: none; font: inherit; font-size: 12px; }
 #importWizard progress { width: 100%; margin-top: 16px; accent-color: var(--accent2); }
 
 .batch-toggle{display:flex;align-items:center;gap:.4em;margin-top:.35em;font-size:.9em;cursor:pointer}
+
+.prompt-history{width:100%;margin-top:.35em;font-size:.9em}

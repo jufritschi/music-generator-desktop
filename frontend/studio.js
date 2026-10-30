@@ -1,3 +1,4 @@
+import { promptHistory } from "./prompt-history";
 import { parseBatchPrompts, buildBatchRequests, MAX_BATCH_PROMPTS } from "./batch-prompts";
 import { startGeneration, loadGenerationPolicy, updateCpuWarnings, updateObservedSynthesis, generationPolicyVersion } from "./generation-policy";
 import { STYLE_TAGS, SECTIONS, randomPrompt, randomStyle, randomTitle } from "./prompts";
@@ -35,6 +36,7 @@ function announce(text, urgent = false) {
 
 // Stil-Karten, nach Art gruppiert; der Würfel mischt daraus einen Stil
 let songs = [];
+let allSongs = [];   // ungefiltert, für den Prompt-Verlauf
 const jobProgress = new Map();
 let currentId = null;
 let onlyFav = false;       // Favoriten-Filter der Bibliothek
@@ -131,6 +133,24 @@ function clearGeneratedPrompt() {
   generatedPrompt = null;
   $("#promptGenerated").hidden = true;
 }
+// Frühere Prompts als Auswahl: Klick übernimmt den Prompt ins Feld.
+function renderPromptHistory() {
+  const select = $("#promptHistory");
+  const prompts = promptHistory(allSongs);
+  select.replaceChildren();
+  if (!prompts.length) { select.hidden = true; return; }
+  select.append(new Option(t("prompt_history"), ""));
+  for (const prompt of prompts) select.append(new Option(prompt.length > 70 ? prompt.slice(0, 67) + "…" : prompt, prompt));
+  select.value = "";
+  select.hidden = false;
+}
+$("#promptHistory").addEventListener("change", (e) => {
+  const value = e.currentTarget.value;
+  if (value) setPrompt(value);
+  e.currentTarget.value = "";
+  form.prompt.focus();
+});
+
 function setPrompt(value, generated = false) {
   form.prompt.value = value;
   generatedPrompt = generated ? value : null;
@@ -388,6 +408,8 @@ async function loadLibrary() {
   const filter = { q: $("#search").value, favorites: onlyFav, folder: curFolder };
   const [nextSongs, qu] = await Promise.all([backend.songs(filter), backend.queue()]);
   songs = nextSongs;
+  allSongs = await backend.songs({});
+  renderPromptHistory();
   const active = new Set(qu.running.map((s) => s.id));
   for (const id of jobProgress.keys()) if (!active.has(id)) jobProgress.delete(id);
   if (qu.progress && active.has(qu.progress.job_id)) rememberProgress(qu.progress);
