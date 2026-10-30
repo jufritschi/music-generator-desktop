@@ -1,3 +1,4 @@
+import { SONG_STRUCTURES, structureText } from "./song-structure";
 import { promptHistory } from "./prompt-history";
 import { parseBatchPrompts, buildBatchRequests, MAX_BATCH_PROMPTS } from "./batch-prompts";
 import { startGeneration, loadGenerationPolicy, updateCpuWarnings, updateObservedSynthesis, generationPolicyVersion } from "./generation-policy";
@@ -112,6 +113,17 @@ addChips($("#sectionChips"), SECTIONS, (t) => {
   const before = f.value.slice(0, pos), ins = (before && !before.endsWith("\n") ? "\n\n" : "") + t + "\n";
   f.value = before + ins + f.value.slice(pos);
   f.focus(); f.selectionStart = f.selectionEnd = pos + ins.length;
+});
+// Songaufbau-Vorlage: schreibt die Abschnittsfolge ins Lyrics-Feld (bei vorhandenem Text ans Ende)
+$("#structureTemplate").addEventListener("change", (e) => {
+  const key = e.currentTarget.value;
+  e.currentTarget.value = "";
+  if (!key || !(key in SONG_STRUCTURES)) return;
+  if (form.instrumental.checked) { form.instrumental.checked = false; syncLyrics(); }
+  const f = form.lyrics, text = structureText(key);
+  f.value = f.value.trim() ? f.value.replace(/\s*$/, "") + "\n\n" + text : text;
+  $("#lyricsBox").open = true;
+  f.focus();
 });
 // Bubble-Slider: Füllstand + Wert im Knopf (BPM ganz links = Auto)
 const SLIDER_FMT = { dur: (v) => fmt(v), int: (v) => String(v), temp: (v) => v.toFixed(2), bpm: (v, min) => (v <= min ? ["AUTO", true] : String(v)) };
