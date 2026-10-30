@@ -7,6 +7,11 @@ describe("style chips", () => {
     expect(STYLE_TAGS).toContain("warm analog synths");
   });
 
+  it("offers vocal style descriptions", () => {
+    expect(STYLE_TAGS).toContain("breathy vocals");
+    expect(STYLE_TAGS).toContain("choir harmonies");
+  });
+
   it("has no duplicate chips", () => {
     expect(new Set(STYLE_TAGS).size).toBe(STYLE_TAGS.length);
   });

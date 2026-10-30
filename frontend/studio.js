@@ -77,8 +77,8 @@ function syncStyleChips() {
     c.classList.toggle("on", on); c.setAttribute("aria-pressed", on);
   });
 }
-// Stil-Karten nach Gruppen mit Überschrift (Genre, Gesang, Instrumente, Klang, Stimmung)
-const STYLE_GROUP_ORDER = ["genre", "vocals", "instr", "sound", "mood"];
+// Stil-Karten nach Gruppen mit Überschrift (Genre, Gesang, Gesangsart, Instrumente, Klang, Stimmung)
+const STYLE_GROUP_ORDER = ["genre", "vocals", "vocalStyle", "instr", "sound", "mood"];
 function renderStyleGroups() {
   const box = $("#tagChips");
   box.replaceChildren();

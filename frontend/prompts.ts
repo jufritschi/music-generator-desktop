@@ -5,11 +5,12 @@ const STYLE_GROUPS = {
     "pop", "rock", "hip hop", "electronic", "lo-fi", "jazz", "ambient", "synthwave", "acoustic", "cinematic",
     "country", "80s pop", "eurotrash", "90s dance", "chillout"],
   vocals: ["female vocals", "male vocals"],
+  vocalStyle: ["breathy vocals", "powerful vocals", "soft whisper", "choir harmonies", "clear diction", "raspy vocals"],
   instr: ["piano", "guitar"],
   sound: ["warm analog synths", "clean studio production", "spacious reverb", "soft acoustic drums", "punchy drums", "vintage tape warmth", "bright and crisp", "lo-fi texture"],
   mood: ["upbeat", "melancholic", "dreamy"],
 };
-const STYLE_TAGS = [...STYLE_GROUPS.genre, ...STYLE_GROUPS.vocals, ...STYLE_GROUPS.instr, ...STYLE_GROUPS.sound, ...STYLE_GROUPS.mood];
+const STYLE_TAGS = [...STYLE_GROUPS.genre, ...STYLE_GROUPS.vocals, ...STYLE_GROUPS.instr, ...STYLE_GROUPS.vocalStyle, ...STYLE_GROUPS.sound, ...STYLE_GROUPS.mood];
 const SECTIONS = ["[intro]", "[verse]", "[pre-chorus]", "[chorus]", "[bridge]", "[outro]", "[instrumental]"];
 
 const R = {
