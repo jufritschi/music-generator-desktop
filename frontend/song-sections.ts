@@ -9,6 +9,12 @@ export interface Section {
   end: number;    // Sekunden
 }
 
+/** Instrumentspuren, die der Lego-Modus hinzufügen kann (gleiche Liste wie im Backend). */
+export const LEGO_TRACKS = [
+  "vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard", "percussion", "strings",
+  "synth", "fx", "brass", "woodwinds",
+] as const;
+
 /** Kürzester erlaubter Abschnitt in Sekunden. */
 export const MIN_SECTION = 1;
 /** Längste Strecke, die eine Neuerzeugung umfassen darf (wie beim Stapel-Modus der Engine). */

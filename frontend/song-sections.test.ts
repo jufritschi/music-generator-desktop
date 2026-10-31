@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySavedTimes, moveBoundary, sectionsFromLyrics, validateRepaint } from "./song-sections";
+import { applySavedTimes, LEGO_TRACKS, moveBoundary, sectionsFromLyrics, validateRepaint } from "./song-sections";
 
 const lyrics = "[intro]\n\n[verse]\nLine one\n\n[chorus]\nHook\n\n[verse]\nLine two\n\n[chorus]\nHook";
 
@@ -80,5 +80,14 @@ describe("applySavedTimes", () => {
 
   it("rejects saved times that are not usable", () => {
     expect(applySavedTimes(base, [{ start: 0, end: 0 }, { start: 0, end: 60 }])).toBe(base);
+  });
+});
+
+describe("LEGO_TRACKS", () => {
+  it("matches the track names the engine documents", () => {
+    expect(LEGO_TRACKS).toHaveLength(12);
+    expect(new Set(LEGO_TRACKS).size).toBe(12);
+    expect(LEGO_TRACKS).toContain("guitar");
+    expect(LEGO_TRACKS).toContain("strings");
   });
 });

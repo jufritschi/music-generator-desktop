@@ -19,7 +19,7 @@ import { samplingForSong } from "./song-sampling";
 import { initializeGenerationFormPreferences, captureGenerationFormPreferences } from "./form-preferences";
 import { songErrorKey } from "./song-errors";
 import { generationSeconds } from "./song-timing";
-import { sectionsFromLyrics, applySavedTimes, moveBoundary, validateRepaint, saveSectionTimes, loadSectionTimes } from "./song-sections";
+import { sectionsFromLyrics, applySavedTimes, moveBoundary, validateRepaint, saveSectionTimes, loadSectionTimes, LEGO_TRACKS } from "./song-sections";
 import { audioTime, songDuration, songDurationWarning, songIterations } from "./song-result";
 import "./song-result-i18n";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -932,6 +932,38 @@ $("#secPlay").addEventListener("click", () => {
   secWs.play();
 });
 $("#secClose").addEventListener("click", () => $("#sectionDialog").close());
+for (const track of LEGO_TRACKS) $("#secTrack").append(new Option(track, track));
+
+// Lego: legt eine neue Instrumentspur über den markierten Abschnitt, der Rest bleibt gleich.
+// Stil und Prompt im Formular beschreiben die neue Spur, z. B. "funky bass line".
+$("#secLego").addEventListener("click", async () => {
+  const sec = secSections[secSel];
+  if (!sec || !secWs || !secSong) return;
+  const err = validateRepaint(sec.start, sec.end, secWs.getDuration());
+  if (err) { secMessage(err); return; }
+  const base = readForm();
+  if (!/base/i.test(base.model_selection?.synthesis ?? "")) { secMessage("lego_need_base"); return; }
+  const track = $("#secTrack").value;
+  const request = {
+    ...base,
+    caption: `${track} part, instrumental`,   // Fallback, falls Stil und Prompt leer sind
+    lyrics: "",
+    instrumental: true,
+    task_type: "lego",
+    lego_track: track,
+    source_song: secSong.id,
+    source_audio: "",
+    repaint_start: sec.start,
+    repaint_end: sec.end,
+    variants: 1,
+  };
+  try {
+    const r = await startGeneration(request);
+    if (r) secMessage("lego_sent");
+  } catch (error) {
+    alert(modelErrorText(error, t));
+  }
+});
 $("#sectionDialog").addEventListener("close", () => {
   secWs?.destroy();
   secWs = null;

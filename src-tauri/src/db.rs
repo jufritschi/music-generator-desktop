@@ -215,7 +215,8 @@ impl Database {
         }
         let cover = req.task_type == "cover-nofsq";
         let repaint = req.task_type == "repaint";
-        if !(cover || repaint || req.task_type == "text2music") {
+        let lego = req.task_type == "lego";
+        if !(cover || repaint || lego || req.task_type == "text2music") {
             return Err(message("Invalid generation parameters"));
         }
         if cover
@@ -225,14 +226,20 @@ impl Database {
         {
             return Err(message("Choose a source song for the cover"));
         }
-        if repaint {
-            if !req.repaint_start.is_finite()
-                || !req.repaint_end.is_finite()
-                || req.repaint_start < 0.0
-                || req.repaint_end <= req.repaint_start
-                || req.repaint_end > 600.0
+        if repaint || lego {
+            // Lego may use 0 and 0 for the whole song; repaint always needs a part.
+            let whole = lego && req.repaint_start == 0.0 && req.repaint_end == 0.0;
+            if !whole
+                && (!req.repaint_start.is_finite()
+                    || !req.repaint_end.is_finite()
+                    || req.repaint_start < 0.0
+                    || req.repaint_end <= req.repaint_start
+                    || req.repaint_end > 600.0)
             {
                 return Err(message("Choose a valid part of the song to regenerate"));
+            }
+            if lego && !crate::types::LEGO_TRACKS.contains(&req.lego_track.as_str()) {
+                return Err(message("Choose an instrument track to add"));
             }
             let source = self
                 .song(&req.source_song)
@@ -268,6 +275,9 @@ impl Database {
         } else {
             crate::catalog::Selection::from_settings(&self.settings()?)
         };
+        if lego && !selection.synthesis.contains("base") {
+            return Err(message("Adding a track needs the base model"));
+        }
         let steps = crate::generation_limits::effective_steps(
             Some(u64::from(req.inference_steps)),
             &selection.synthesis,

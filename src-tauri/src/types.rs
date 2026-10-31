@@ -85,7 +85,7 @@ pub struct GenerateRequest {
     pub lm_temperature: Option<f64>,
     pub group_id: Option<String>,
     pub folder_id: Option<String>,
-    /// "text2music" (normal), "cover-nofsq" (own song as template) or "repaint" (replace a part of a song).
+    /// "text2music" (normal), "cover-nofsq" (own song as template), "repaint" (replace a part) or "lego" (add a track).
     pub task_type: String,
     /// 0 = loose reinterpretation, 1 = close to the original.
     pub cover_strength: f64,
@@ -95,9 +95,27 @@ pub struct GenerateRequest {
     pub source_song: String,
     /// "repaint" only: start of the part to regenerate, in seconds.
     pub repaint_start: f64,
-    /// "repaint" only: end of the part to regenerate, in seconds.
+    /// "repaint" and "lego": end of the part, in seconds. Lego: 0 and 0 = whole song.
     pub repaint_end: f64,
+    /// "lego" only: instrument track to add, one of LEGO_TRACKS.
+    pub lego_track: String,
 }
+
+/// Instrument tracks the engine can add with the lego task (see ARCHITECTURE.md).
+pub const LEGO_TRACKS: &[&str] = &[
+    "vocals",
+    "backing_vocals",
+    "drums",
+    "bass",
+    "guitar",
+    "keyboard",
+    "percussion",
+    "strings",
+    "synth",
+    "fx",
+    "brass",
+    "woodwinds",
+];
 
 impl Default for GenerateRequest {
     fn default() -> Self {
@@ -127,6 +145,7 @@ impl Default for GenerateRequest {
             source_song: String::new(),
             repaint_start: 0.0,
             repaint_end: 0.0,
+            lego_track: String::new(),
         }
     }
 }

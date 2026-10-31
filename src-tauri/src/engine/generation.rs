@@ -243,6 +243,32 @@ impl EngineClient {
             .await
     }
 
+    /// Lego mode: a new instrument track is layered over the source song.
+    /// Without a region (repaint_start and repaint_end both 0) the whole song is used.
+    pub async fn generate_lego(
+        &self,
+        params: &Value,
+        source: Vec<u8>,
+        dit: &str,
+        cancel: &CancellationToken,
+        progress: impl Fn(Progress),
+    ) -> Result<(Vec<u8>, String, Value)> {
+        let mut request = json!({
+            "task_type": "lego",
+            "caption": params["caption"],
+            "lyrics": "[Instrumental]",
+            "track": params["lego_track"],
+        });
+        let start = params["repaint_start"].as_f64().unwrap_or(0.0);
+        let end = params["repaint_end"].as_f64().unwrap_or(0.0);
+        if start != 0.0 || end != 0.0 {
+            request["repainting_start"] = json!(start);
+            request["repainting_end"] = json!(end);
+        }
+        self.generate_from_source(params, request, source, dit, cancel, progress)
+            .await
+    }
+
     /// Shared path for every request that sends a source song to /synth.
     async fn generate_from_source(
         &self,

@@ -105,7 +105,7 @@ pub async fn worker<R: Runtime>(state: Arc<AppState>, app: AppHandle<R>) {
                     let name = params["source_audio"].as_str().unwrap_or("");
                     Some(crate::covers::read(&state.db.root, name)?)
                 }
-                "repaint" => {
+                "repaint" | "lego" => {
                     let song = state
                         .db
                         .song(params["source_song"].as_str().unwrap_or(""))?;
@@ -125,6 +125,11 @@ pub async fn worker<R: Runtime>(state: Arc<AppState>, app: AppHandle<R>) {
                     ("cover-nofsq", Some(bytes)) => {
                         client
                             .generate_cover(&params, bytes, &selection.synthesis, &cancel, progress)
+                            .await?
+                    }
+                    ("lego", Some(bytes)) => {
+                        client
+                            .generate_lego(&params, bytes, &selection.synthesis, &cancel, progress)
                             .await?
                     }
                     ("repaint", Some(bytes)) => {
