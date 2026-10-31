@@ -214,7 +214,8 @@ impl Database {
             return Err(message("Invalid generation parameters"));
         }
         let cover = req.task_type == "cover-nofsq";
-        if !(cover || req.task_type == "text2music") {
+        let repaint = req.task_type == "repaint";
+        if !(cover || repaint || req.task_type == "text2music") {
             return Err(message("Invalid generation parameters"));
         }
         if cover
@@ -223,6 +224,22 @@ impl Database {
                 || !crate::covers::valid_name(&req.source_audio))
         {
             return Err(message("Choose a source song for the cover"));
+        }
+        if repaint {
+            if !req.repaint_start.is_finite()
+                || !req.repaint_end.is_finite()
+                || req.repaint_start < 0.0
+                || req.repaint_end <= req.repaint_start
+                || req.repaint_end > 600.0
+            {
+                return Err(message("Choose a valid part of the song to regenerate"));
+            }
+            let source = self
+                .song(&req.source_song)
+                .map_err(|_| message("Choose a song to regenerate a part of"))?;
+            if source.audio_missing || source.path.is_none() {
+                return Err(message("The song to regenerate is no longer available"));
+            }
         }
         let caption = [
             req.style.trim().trim_matches(','),

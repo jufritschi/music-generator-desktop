@@ -85,12 +85,18 @@ pub struct GenerateRequest {
     pub lm_temperature: Option<f64>,
     pub group_id: Option<String>,
     pub folder_id: Option<String>,
-    /// "text2music" (normal) or "cover-nofsq" (own song as template).
+    /// "text2music" (normal), "cover-nofsq" (own song as template) or "repaint" (replace a part of a song).
     pub task_type: String,
     /// 0 = loose reinterpretation, 1 = close to the original.
     pub cover_strength: f64,
     /// Stored file name inside the covers folder (cover mode only).
     pub source_audio: String,
+    /// "repaint" only: id of the finished song whose part is regenerated.
+    pub source_song: String,
+    /// "repaint" only: start of the part to regenerate, in seconds.
+    pub repaint_start: f64,
+    /// "repaint" only: end of the part to regenerate, in seconds.
+    pub repaint_end: f64,
 }
 
 impl Default for GenerateRequest {
@@ -118,6 +124,9 @@ impl Default for GenerateRequest {
             task_type: "text2music".into(),
             cover_strength: 0.3,
             source_audio: String::new(),
+            source_song: String::new(),
+            repaint_start: 0.0,
+            repaint_end: 0.0,
         }
     }
 }

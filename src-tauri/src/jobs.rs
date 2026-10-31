@@ -96,21 +96,49 @@ pub async fn worker<R: Runtime>(state: Arc<AppState>, app: AppHandle<R>) {
                 .await?;
                 let _ = app.emit("models-changed", ());
             }
-            let source = if params["task_type"] == "cover-nofsq" {
-                let name = params["source_audio"].as_str().unwrap_or("");
-                Some(crate::covers::read(&state.db.root, name)?)
-            } else {
-                None
+            let task = params["task_type"]
+                .as_str()
+                .unwrap_or("text2music")
+                .to_string();
+            let source = match task.as_str() {
+                "cover-nofsq" => {
+                    let name = params["source_audio"].as_str().unwrap_or("");
+                    Some(crate::covers::read(&state.db.root, name)?)
+                }
+                "repaint" => {
+                    let song = state
+                        .db
+                        .song(params["source_song"].as_str().unwrap_or(""))?;
+                    let missing = song.audio_missing;
+                    let path = song.path.filter(|_| !missing).ok_or_else(|| {
+                        crate::error::message("The song to regenerate is no longer available")
+                    })?;
+                    Some(std::fs::read(path).map_err(|_| {
+                        crate::error::message("The song to regenerate is no longer available")
+                    })?)
+                }
+                _ => None,
             };
             let (audio, ext, mut meta) = {
                 let client = state.start_engine(&operation, &settings).await?;
-                match source {
-                    Some(bytes) => {
+                match (task.as_str(), source) {
+                    ("cover-nofsq", Some(bytes)) => {
                         client
                             .generate_cover(&params, bytes, &selection.synthesis, &cancel, progress)
                             .await?
                     }
-                    None => {
+                    ("repaint", Some(bytes)) => {
+                        client
+                            .generate_repaint(
+                                &params,
+                                bytes,
+                                &selection.synthesis,
+                                &cancel,
+                                progress,
+                            )
+                            .await?
+                    }
+                    _ => {
                         client
                             .generate(
                                 &params,

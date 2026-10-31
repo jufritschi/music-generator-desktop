@@ -403,3 +403,21 @@ button.chip { background: none; font: inherit; font-size: 12px; }
 .cover-source{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
 .cover-source[hidden],.cover-strength-field[hidden]{display:none}
 .cover-strength-field{margin-top:8px}
+
+/* Songaufbau-Dialog: Wellenform mit Abschnittsblöcken und Griffen zum Verschieben */
+#sectionDialog { width: min(900px, calc(100vw - 32px)); }
+.sec-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sec-head .col-title { margin: 0; }
+.sec-help { color: var(--muted); margin: 10px 0 0; }
+.sec-wrap { position: relative; margin: 14px 0; }
+#secWave { height: 120px; }
+.sec-blocks { position: absolute; inset: 0; pointer-events: none; }
+.sec-block { position: absolute; top: 0; bottom: 0; pointer-events: auto; border: 0; border-left: 1px solid var(--border);
+  background: rgba(109, 140, 255, .14); color: var(--text); font-size: .8em; text-align: left; padding: 4px 6px; cursor: pointer; overflow: hidden; }
+.sec-block[aria-pressed="true"] { background: rgba(209, 167, 92, .28); }
+.sec-edge { position: absolute; top: 0; bottom: 0; width: 12px; margin-left: -6px; cursor: ew-resize; pointer-events: auto; }
+.sec-edge::after { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: var(--label); }
+.sec-edit { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.sec-edit label { display: grid; gap: 4px; }
+.sec-edit input { width: 110px; }
+.sec-msg { color: var(--label); min-height: 1.4em; margin: 10px 0 0; }

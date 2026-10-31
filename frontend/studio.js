@@ -19,6 +19,7 @@ import { samplingForSong } from "./song-sampling";
 import { initializeGenerationFormPreferences, captureGenerationFormPreferences } from "./form-preferences";
 import { songErrorKey } from "./song-errors";
 import { generationSeconds } from "./song-timing";
+import { sectionsFromLyrics, applySavedTimes, moveBoundary, validateRepaint, saveSectionTimes, loadSectionTimes } from "./song-sections";
 import { audioTime, songDuration, songDurationWarning, songIterations } from "./song-result";
 import "./song-result-i18n";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -41,6 +42,7 @@ let songs = [];
 let allSongs = [];   // ungefiltert, für den Prompt-Verlauf
 const jobProgress = new Map();
 let currentId = null;
+let currentSong = null;   // Song, der gerade im Player liegt (für Abschnitte)
 let onlyFav = false;       // Favoriten-Filter der Bibliothek
 const openLyrics = new Set();   // Songs, deren generierte Lyrics gerade aufgeklappt sind
 let exportFmt = "wav";   // Download-Format laut Einstellung (nur für die Beschriftung des Download-Knopfs)
@@ -799,6 +801,7 @@ async function play(s) {
   if (ws.isPlaying()) ws.pause();   // der bisherige Song verstummt sofort, nicht erst nach dem Laden des neuen
   if (!played.has(s.id)) { markPlayed(s.id); render(); }
   currentId = s.id;
+  currentSong = s;
   $("#player").hidden = false;
   if (!play.ro) {   // Höhe des Players ändert sich, sobald die Wellenform geladen ist
     play.ro = new ResizeObserver(() => document.documentElement.style.setProperty("--player-h", $("#player").offsetHeight + "px"));
@@ -811,6 +814,153 @@ async function play(s) {
   ws.play();
   render();
 }
+
+// ---------------------------------------------------------------- Songaufbau (Abschnitte)
+// Zeigt die Wellenform des Songs mit Blöcken für jeden Abschnitt. Ein Abschnitt lässt sich
+// mit Griffen oder per Sekunden-Eingabe verschieben und einzeln neu erzeugen (Modus "repaint").
+let secWs = null, secSong = null, secSections = [], secSel = 0, secStop = null;
+const pct = (x, dur) => `${(Math.max(0, x) / dur * 100).toFixed(3)}%`;
+
+function secMessage(key) { $("#secMsg").textContent = key ? t(key) : ""; }
+
+function openSections() {
+  if (!currentSong) return;
+  secSong = currentSong;
+  $("#secTitle").textContent = secSong.title || secSong.caption;
+  secSections = [];
+  secSel = 0;
+  secMessage("");
+  secWs?.destroy();
+  const css = getComputedStyle(document.documentElement);
+  secWs = WaveSurfer.create({
+    container: "#secWave", height: 120, barWidth: 2, barGap: 1, barRadius: 2, cursorWidth: 1,
+    waveColor: css.getPropertyValue("--border").trim() || "#2a2e38",
+    progressColor: css.getPropertyValue("--accent2").trim() || "#d1a75c",
+  });
+  secWs.on("ready", () => {
+    const dur = secWs.getDuration();
+    const base = sectionsFromLyrics(secSong.lyrics, dur);
+    secSections = applySavedTimes(base, loadSectionTimes(secSong.id));
+    drawSections();
+    selectSection(0);
+  });
+  secWs.on("timeupdate", (time) => {
+    if (secStop !== null && time >= secStop) { secWs.pause(); secStop = null; }
+  });
+  secWs.load(secSong.url).catch(() => secMessage("sections_err_range"));
+  $("#sectionDialog").showModal();
+}
+
+function drawSections() {
+  const dur = secWs?.getDuration();
+  if (!dur) return;
+  const box = $("#secBlocks");
+  box.replaceChildren();
+  secSections.forEach((sec, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "sec-block";
+    b.style.left = pct(sec.start, dur);
+    b.style.width = pct(sec.end - sec.start, dur);
+    b.textContent = sec.name ? sec.label : t("sections_whole");
+    b.setAttribute("aria-pressed", String(i === secSel));
+    b.onclick = () => selectSection(i);
+    box.append(b);
+  });
+  for (let i = 1; i < secSections.length; i++) {
+    const edge = document.createElement("div");
+    edge.className = "sec-edge";
+    edge.style.left = pct(secSections[i].start, dur);
+    edge.setAttribute("role", "separator");
+    edge.onpointerdown = (e) => startBoundaryDrag(e, i);
+    box.append(edge);
+  }
+}
+
+function startBoundaryDrag(e, i) {
+  e.preventDefault();
+  const move = (ev) => {
+    const dur = secWs.getDuration();
+    const r = $("#secBlocks").getBoundingClientRect();
+    secSections = moveBoundary(secSections, i, (ev.clientX - r.left) / r.width * dur, dur);
+    drawSections();
+    showSelection();
+  };
+  const up = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    saveSectionTimes(secSong.id, secSections);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+}
+
+function selectSection(i) {
+  secSel = i;
+  drawSections();
+  showSelection();
+}
+
+function showSelection() {
+  const sec = secSections[secSel];
+  if (!sec) return;
+  $("#secStart").value = sec.start;
+  $("#secEnd").value = sec.end;
+  secMessage(validateRepaint(sec.start, sec.end, secWs.getDuration()));
+}
+
+$("#secStart").addEventListener("change", (e) => {
+  const v = Number(e.target.value);
+  if (secSel > 0) secSections = moveBoundary(secSections, secSel, v, secWs.getDuration());
+  drawSections();
+  showSelection();
+  saveSectionTimes(secSong.id, secSections);
+});
+$("#secEnd").addEventListener("change", (e) => {
+  const v = Number(e.target.value);
+  if (secSel < secSections.length - 1) secSections = moveBoundary(secSections, secSel + 1, v, secWs.getDuration());
+  drawSections();
+  showSelection();
+  saveSectionTimes(secSong.id, secSections);
+});
+$("#secPlay").addEventListener("click", () => {
+  const sec = secSections[secSel];
+  if (!sec || !secWs) return;
+  secStop = sec.end;
+  secWs.setTime(sec.start);
+  secWs.play();
+});
+$("#secClose").addEventListener("click", () => $("#sectionDialog").close());
+$("#sectionDialog").addEventListener("close", () => {
+  secWs?.destroy();
+  secWs = null;
+  secStop = null;
+});
+$("#sectionsBtn").addEventListener("click", openSections);
+
+$("#secRepaint").addEventListener("click", async () => {
+  const sec = secSections[secSel];
+  if (!sec || !secWs || !secSong) return;
+  const err = validateRepaint(sec.start, sec.end, secWs.getDuration());
+  if (err) { secMessage(err); return; }
+  const base = readForm();
+  const request = {
+    ...base,
+    caption: secSong.caption,   // Stil-Fallback, falls Stil und Prompt leer sind
+    task_type: "repaint",
+    source_song: secSong.id,
+    source_audio: "",
+    repaint_start: sec.start,
+    repaint_end: sec.end,
+    variants: 1,
+  };
+  try {
+    const r = await startGeneration(request);
+    if (r) secMessage("sections_busy");
+  } catch (error) {
+    alert(modelErrorText(error, t));
+  }
+});
 
 // ---------------------------------------------------------------- Einstellungen & Status
 let healthRevision = 0;

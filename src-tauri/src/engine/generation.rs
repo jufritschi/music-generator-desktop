@@ -212,18 +212,53 @@ impl EngineClient {
         cancel: &CancellationToken,
         progress: impl Fn(Progress),
     ) -> Result<(Vec<u8>, String, Value)> {
-        let steps =
-            crate::generation_limits::effective_steps(params["inference_steps"].as_u64(), dit);
-        let mut request = json!({
+        let request = json!({
             "task_type": "cover-nofsq",
             "caption": params["caption"],
             "lyrics": params["lyrics"],
             "audio_cover_strength": params["cover_strength"],
-            "inference_steps": steps,
-            "synth_model": dit,
-            "output_format": "wav16",
-            "peak_clip": 0,
         });
+        self.generate_from_source(params, request, source, dit, cancel, progress)
+            .await
+    }
+
+    /// Repaint mode: only the time range from repaint_start to repaint_end is regenerated.
+    /// The rest of the source song is kept as it is. No language model runs.
+    pub async fn generate_repaint(
+        &self,
+        params: &Value,
+        source: Vec<u8>,
+        dit: &str,
+        cancel: &CancellationToken,
+        progress: impl Fn(Progress),
+    ) -> Result<(Vec<u8>, String, Value)> {
+        let request = json!({
+            "task_type": "repaint",
+            "caption": params["caption"],
+            "lyrics": params["lyrics"],
+            "repainting_start": params["repaint_start"],
+            "repainting_end": params["repaint_end"],
+        });
+        self.generate_from_source(params, request, source, dit, cancel, progress)
+            .await
+    }
+
+    /// Shared path for every request that sends a source song to /synth.
+    async fn generate_from_source(
+        &self,
+        params: &Value,
+        mut request: Value,
+        source: Vec<u8>,
+        dit: &str,
+        cancel: &CancellationToken,
+        progress: impl Fn(Progress),
+    ) -> Result<(Vec<u8>, String, Value)> {
+        let steps =
+            crate::generation_limits::effective_steps(params["inference_steps"].as_u64(), dit);
+        request["inference_steps"] = json!(steps);
+        request["synth_model"] = json!(dit);
+        request["output_format"] = json!("wav16");
+        request["peak_clip"] = json!(0);
         for field in ["bpm", "keyscale", "timesignature", "vocal_language", "seed"] {
             if let Some(value) = params
                 .get(field)
@@ -234,6 +269,7 @@ impl EngineClient {
         }
         let name = params["source_audio"]
             .as_str()
+            .filter(|n| !n.is_empty())
             .unwrap_or("source.wav")
             .to_string();
         let form = reqwest::multipart::Form::new()

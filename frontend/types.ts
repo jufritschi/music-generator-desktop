@@ -21,6 +21,7 @@ export interface Generation {
   timesignature?: string; vocal_language?: string; seed?: number; variants?: number;
   inference_steps?: number; lm_temperature?: number; group_id?: string; folder_id?: string | null;
   task_type?: string; cover_strength?: number; source_audio?: string;
+  source_song?: string; repaint_start?: number; repaint_end?: number;
 }
 export interface Song {
   id: string; group_id: string; created_at: string; finished_at: string | null;
