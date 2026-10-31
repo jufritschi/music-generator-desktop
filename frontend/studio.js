@@ -863,6 +863,7 @@ function drawSections() {
     b.style.left = pct(sec.start, dur);
     b.style.width = pct(sec.end - sec.start, dur);
     b.textContent = sec.name ? sec.label : t("sections_whole");
+    b.title = b.textContent;   // voller Name, falls der Block zu schmal ist
     b.setAttribute("aria-pressed", String(i === secSel));
     b.onclick = () => selectSection(i);
     box.append(b);
