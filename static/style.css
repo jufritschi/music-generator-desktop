@@ -409,9 +409,9 @@ button.chip { background: none; font: inherit; font-size: 12px; }
 .sec-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .sec-head .col-title { margin: 0; }
 .sec-help { color: var(--muted); margin: 10px 0 0; }
-.sec-wrap { position: relative; margin: 14px 0; }
+.sec-wrap { position: relative; margin: 14px 0; isolation: isolate; }
 #secWave { height: 120px; }
-.sec-blocks { position: absolute; inset: 0; pointer-events: none; }
+.sec-blocks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }   /* liegt über der Wellenform, sonst sind die Blöcke nicht anklickbar */
 .sec-block { position: absolute; top: 0; bottom: 0; pointer-events: auto; border: 0; border-left: 1px solid var(--border);
   background: rgba(109, 140, 255, .14); color: var(--text); font-size: .8em; text-align: left; padding: 4px 6px; cursor: pointer; overflow: hidden; }
 .sec-block[aria-pressed="true"] { background: rgba(209, 167, 92, .28); }
