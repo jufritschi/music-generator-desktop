@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: mocks.listen }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
 
 const data = {
-  needs_setup: true, version: "0.1.2", data_dir: "/data", error: null, manifest, title_model: title.model,
+  needs_setup: true, version: "0.2.0", data_dir: "/data", error: null, manifest, title_model: title.model,
   settings: { cpu_iteration_behavior: "ask", models_dir: "/models", songs_dir: "/songs", lm_model: "acestep-5Hz-lm-1.7B-Q8_0.gguf", expert_mode: false, dit: "standard", model_provider: "ace-step", synthesis_model: "acestep-v15-sft-Q8_0.gguf", lm_device: "auto", export_format: "wav", poll_interval: 1.5, timeout_minutes: 30, mode: "single", vae_chunk: 256, tested_fingerprint: "", setup_complete: false },
   hardware: { ram_bytes: 16 * 1024 ** 3, gpu: "GPU", recommended_lm: "1.7B", vram_bytes: null, vae_chunk: 256, platform: "windows", cpu_only: false },
   recommended_profiles: [{ provider: "ace-step", synthesis: "acestep-v15-sft-Q8_0.gguf", language: "acestep-5Hz-lm-1.7B-Q8_0.gguf" }],
